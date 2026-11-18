@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+    <title>Local Document Editor</title>
+    <link rel="stylesheet" href="app.css">
+    <script defer src="qwebchannel.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <main class="workspace">
+      <div class="toolbar">
+        <button id="verify-document" type="button" disabled>Verify document</button>
+        <span id="editor-status" role="status">Connecting to the editor…</span>
+      </div>
+      <div id="editor" class="editor"></div>
+      <p class="note">Edits are temporary in M2.1.</p>
+    </main>
+  </body>
+</html>

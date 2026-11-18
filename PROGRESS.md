@@ -89,5 +89,35 @@ The workspace already contained an independent POS application, its database, an
 - The Dashboard shows an unavailable state for generated documents. The template editor, document generation, exports, and payroll calculations are later milestones.
 - Recent activity covers business changes in the current company. Local authentication, role controls, encrypted backups, and production packaging are later milestones.
 
-M2 implementation is pending approval of the technical plan.
+## M2.1 · Editor Foundation
+
+**Status:** Awaiting acceptance.
+
+### Delivered
+
+- Embedded Tiptap 3 and ProseMirror in the existing Document Editor page. The installed wheel includes the JavaScript, CSS, HTML, and third-party notices. The editor reads Qt's WebChannel script from a Qt resource and serves it at the editor's local origin.
+- Added a WebChannel object with one application slot. Its dispatcher handles session open and document verification. The desktop selects the company and assigns a session ID. A company switch closes the previous session and opens a blank editor for the new company.
+- Added version 1 of the wire protocol and paragraph document schema. Both sides validate the structured data. The editor's off-the-record profile permits only the named local assets and blocks external navigation and local file URLs.
+- Kept the M0/M1 database schema and migrations in place. The editor does not write drafts or versions in M2.1.
+
+### Verification completed
+
+- All 56 tests passed on Windows 11 x64, including the 29 M0/M1 regression tests.
+- Two subprocess tests started real Qt WebEngine renderers from source and from an installed wheel. Both verified the WebChannel handshake, exact Unicode and paragraph structure, blocked navigation, and a fresh session on company switch.
+- The wheel was installed with pip's index disabled and opened without Node/npm on PATH. The renderer ran offscreen with GPU acceleration disabled, DNS resolution blocked, and a loopback-only proxy. The editor enforced its normal URL allowlist.
+- TypeScript type checking, bundle reproducibility, Python dependency and lint checks, and the Python source distribution and wheel builds passed.
+
+### Windows 11 manual acceptance
+
+1. From the `919_DOCUMENT_MANAGER` project directory, start a separate workspace with `.\.venv\Scripts\python.exe -m document_manager --data-dir "$env:TEMP\919-document-manager-m21"`. Disconnect from the network for the offline check.
+2. Select **Document Editor** and wait for **Editor ready**. Type `Perjanjian sewa — 麻坡`, add a blank paragraph, and type `Lot 12 & 13`. Select **Verify document**. Expect **Document structure verified** and confirm the text and blank paragraph remain visible.
+3. Create a second company in **Company Settings**. Open **Document Editor** for it and confirm the editor starts blank. Switch back to the first company and confirm it opens with a fresh editor.
+4. Close and reopen the app. Confirm the company profiles still exist and Document Editor starts with a blank page.
+
+### Current limitations
+
+- The foundation handles plain text and paragraphs. It applies size limits and keeps edits only in the current company session.
+- The visual editing panels, formatting, pagination, dynamic fields, and draft and publish workflows are planned for M2.2 through M2.4. Interactive Windows 11 acceptance is pending.
+
+M2.2 is pending acceptance of M2.1.
 

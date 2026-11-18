@@ -1,0 +1,70 @@
+:root {
+  font: 14px/1.55 system-ui, "Segoe UI", sans-serif;
+  color: #152740;
+  background: #f1f5f9;
+}
+
+body {
+  margin: 0;
+}
+
+.workspace {
+  max-width: 860px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+button {
+  border: 1px solid #245589;
+  border-radius: 5px;
+  background: #245589;
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  padding: 6px 12px;
+}
+
+button:enabled:hover {
+  background: #1b446f;
+}
+
+button:disabled {
+  border-color: #d0dbe7;
+  background: #e1e8f0;
+  color: #53667b;
+}
+
+#editor-status, .note {
+  color: #435973;
+}
+
+.editor [contenteditable] {
+  box-sizing: border-box;
+  min-height: 310px;
+  padding: 18px 22px;
+  border: 1px solid #9aacc1;
+  border-radius: 8px;
+  outline: none;
+  background: white;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.editor [contenteditable]:focus {
+  border-color: #245da0;
+  box-shadow: 0 0 0 2px #cfe0f4;
+}
+
+.editor p {
+  margin: 0 0 0.7em;
+}
+
+.editor p:last-child {
+  margin-bottom: 0;
+}

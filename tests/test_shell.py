@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 from document_manager.services.business import BusinessService
 from document_manager.services.settings import SettingsService
 from document_manager.ui.company_logo import read_logo
+from document_manager.ui.editor_page import DocumentEditor
 from document_manager.ui.main_window import MainWindow
 from document_manager.ui.record_forms import record_dialog
 
@@ -26,7 +27,9 @@ def shell(qtbot, database_engine):
     return window, settings, business
 
 
-def test_navigation_and_company_settings(qtbot, shell):
+def test_navigation_and_company_settings(qtbot, shell, monkeypatch):
+    # WebEngine startup is covered in a separate process that tests the real renderer.
+    monkeypatch.setattr(DocumentEditor, "activate", lambda _editor: None)
     window, settings, _business = shell
     assert window.company_name.text() == "919 RESTAURANT"
     qtbot.mouseClick(window.dashboard.settings_button, Qt.MouseButton.LeftButton)

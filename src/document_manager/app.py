@@ -8,6 +8,7 @@ from pathlib import Path
 from PySide6.QtCore import QCoreApplication, QStandardPaths, Qt
 from PySide6.QtWidgets import QApplication, QMessageBox
 
+from document_manager.editor.web import register_editor_scheme
 from document_manager.persistence.database import (
     create_database_engine,
     upgrade_database,
@@ -26,6 +27,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="Initialize and check local storage, then exit.")
     args = parser.parse_args(argv)
     QCoreApplication.setApplicationName(APP_NAME)
+    if not args.check:
+        register_editor_scheme()
     app = None if args.check else QApplication([])
     log_path = None
 
@@ -64,6 +67,7 @@ def main(argv: list[str] | None = None) -> int:
                 return 0
 
             window = MainWindow(settings, BusinessService(engine), company_id, profile)
+            window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
             window.show()
         except Exception:
             logger.exception("Application startup failed")

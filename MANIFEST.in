@@ -1,2 +1,4 @@
 include PROGRESS.md Start-DocumentManager.ps1
 recursive-include tests *.py
+include editor/package.json editor/package-lock.json editor/tsconfig.json editor/build.mjs
+recursive-include editor/src *.ts *.css

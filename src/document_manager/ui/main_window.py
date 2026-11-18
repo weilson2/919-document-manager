@@ -4,7 +4,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QListWidget,
     QMainWindow,
-    QPushButton,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -14,6 +13,7 @@ from document_manager.services.business import BusinessService
 from document_manager.services.settings import CompanyProfile, SettingsService
 from document_manager.ui.company_settings import CompanySettings
 from document_manager.ui.dashboard import Dashboard
+from document_manager.ui.editor_page import DocumentEditor
 from document_manager.ui.records import RecordsPage
 from document_manager.ui.widgets import (
     HANDLED_ERRORS,
@@ -36,6 +36,7 @@ NAVIGATION = (
     "Backup & Restore",
 )
 SETTINGS_INDEX = NAVIGATION.index("Company Settings")
+EDITOR_INDEX = NAVIGATION.index("Document Editor")
 
 SHELL_STYLE = """
 QWidget#workspace { background: #f1f5f9; color: #152740; }
@@ -118,6 +119,7 @@ class MainWindow(QMainWindow):
         self.navigation.setAccessibleName("Main navigation")
         self.navigation.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.pages = QStackedWidget()
+        self.document_editor = DocumentEditor()
         self.dashboard = Dashboard(business, lambda: self.navigation.setCurrentRow(SETTINGS_INDEX), self._quick_create)
         self.company_name = self.dashboard.company_name
         self.company_settings = CompanySettings(settings)
@@ -131,6 +133,7 @@ class MainWindow(QMainWindow):
         for title in NAVIGATION:
             self.pages.addWidget(self._page(title))
         self.navigation.currentRowChanged.connect(self.pages.setCurrentIndex)
+        self.pages.currentChanged.connect(self._page_changed)
         self.navigation.setCurrentRow(0)
         self.navigation.setFocus()
 
@@ -201,6 +204,7 @@ class MainWindow(QMainWindow):
 
     def _load_company(self, company_id: int, profile: CompanyProfile) -> None:
         self.company_id = company_id
+        self.document_editor.set_company(company_id)
         self.company_name.setText(profile.name)
         self.company_settings.set_company(company_id, profile, self.default_company_id)
         for page in self.record_pages.values():
@@ -221,6 +225,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         if self.company_settings.can_switch():
+            self.document_editor.close_session()
             super().closeEvent(event)
         else:
             event.ignore()
@@ -230,6 +235,10 @@ class MainWindow(QMainWindow):
         page = self.record_pages[kind]
         page.archive_filter.setChecked(False)
         page.new_record()
+
+    def _page_changed(self, index: int) -> None:
+        if index == EDITOR_INDEX:
+            self.document_editor.activate()
 
     def _page(self, title: str) -> QWidget:
         page = QWidget()
@@ -244,6 +253,9 @@ class MainWindow(QMainWindow):
         if title == "Company Settings":
             layout.addWidget(self.company_settings, 1)
             return page
+        if title == "Document Editor":
+            layout.addWidget(self.document_editor, 1)
+            return page
         for kind, name in (("template", "Templates"), ("tenant", "Tenants"), ("employee", "Employees")):
             if title == name:
                 layout.addWidget(self.record_pages[kind], 1)
@@ -254,13 +266,7 @@ class MainWindow(QMainWindow):
         details = QVBoxLayout(card)
         details.setContentsMargins(20, 18, 20, 18)
         details.setSpacing(12)
-        if title == "Document Editor":
-            details.addWidget(plain_label("The M2 visual editor will let you design document layouts."))
-            button = QPushButton("Open Templates")
-            button.clicked.connect(lambda: self.navigation.setCurrentRow(NAVIGATION.index("Templates")))
-            details.addWidget(button, alignment=Qt.AlignmentFlag.AlignLeft)
-        else:
-            details.addWidget(plain_label("This section will be available in a later milestone."))
+        details.addWidget(plain_label("This section will be available in a later milestone."))
         layout.addWidget(card)
         layout.addStretch()
         return page
