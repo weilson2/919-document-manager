@@ -16,6 +16,13 @@ analysis = Analysis(
     datas=assets,
     hiddenimports=["sqlalchemy.dialects.sqlite.pysqlite"],
 )
+# This PySide6 build links the Windows ICU ABI. A generic ICU on the build PATH
+# can have the same name with different exports and must not shadow System32.
+analysis.binaries = [
+    binary for binary in analysis.binaries
+    if Path(binary[0]).name.lower() not in {"icu.dll", "icuuc.dll", "icuin.dll"}
+    and not Path(binary[0]).name.lower().startswith("icudt")
+]
 archive = PYZ(analysis.pure)
 exe = EXE(archive, analysis.scripts, [], exclude_binaries=True, name="919DocumentManager",
           console=False, upx=False)

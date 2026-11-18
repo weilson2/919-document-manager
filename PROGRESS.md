@@ -204,6 +204,20 @@ The integrated program started at `04f26a6`. M2.2 passed 66 automated tests and 
 - [x] WP9. Local sign-in and roles, encrypted backup and clean-folder restore, PyInstaller build configuration, and x64 Windows MSI authoring.
 - [x] WP10. Automated rental, offer, draft payslip, and custom-template journeys through Qt with the Windows manual checklist below.
 
+### Release verification
+
+| Check | Result |
+| --- | --- |
+| Python regression suite | 101 passed, including M0/M1 migration preservation, stale drafts, roles, contribution boundaries, immutable history, encrypted backup/restore, and the four Qt journeys. |
+| Editor checks | Seven TypeScript tests passed. Type checking and the checked-in bundle comparison passed. |
+| Python build and dependencies | Ruff and `pip check` passed. The source distribution and wheel built successfully. An offline installed-wheel probe repeated all four Qt journeys. |
+| Print output | A4 portrait dimensions, margins, Chinese and Malay text, image placement, headers, footers, and page numbers passed. An A5 landscape table retained all 120 test rows across 12 pages. |
+| Windows packaging | The PyInstaller executable and WiX x64 MSI built. Windows Installer extracted the MSI into a new test folder. The extracted executable generated three PDFs offline, reopened its database, and passed SQLite integrity and PDF checksum verification. A full interactive install remains part of the manual checklist. |
+
+The build now excludes generic ICU DLLs from the build machine PATH so Qt can load the Windows ICU libraries it was built against. [Windows ICU API](https://learn.microsoft.com/en-us/windows/win32/intl/international-components-for-unicode--icu-)
+
+The artifacts are `dist/919DocumentManager-0.4.0rc1-x64.msi` and `dist/python-0.4.0rc1/`. The MSI SHA-256 is `4688D352E7716B6AF3A6484B97566D01F46865290EAD1B0C27CF910DDE7A38BC`.
+
 ### Release limitations
 
 - Statutory payroll approval stays blocked while verified EPF, SOCSO, EIS and PCB/MTD adapters are unavailable. The draft calculations show the missing amounts and exclude them from estimated totals.
