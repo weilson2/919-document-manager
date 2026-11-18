@@ -12,11 +12,11 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m document_manager
 ```
 
-After setup, the development launcher also accepts `-DataDir` to use a separate workspace and `-Check` to initialize and check storage without opening a window.
+Use `--data-dir` to open a separate workspace. Add `--check` to initialize and check storage without opening a window. These commands can run from PowerShell with script execution disabled.
 
 ```powershell
-.\Start-DocumentManager.ps1
-.\Start-DocumentManager.ps1 -Check -DataDir "$env:TEMP\919-document-manager-dev"
+.\.venv\Scripts\python.exe -m document_manager --data-dir "$env:TEMP\919-document-manager-dev"
+.\.venv\Scripts\python.exe -m document_manager --check --data-dir "$env:TEMP\919-document-manager-dev"
 ```
 
 Initial dependency installation uses PyPI. The installed application runs locally without a server or network connection.

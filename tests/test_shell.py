@@ -1,6 +1,6 @@
 import pytest
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QImage
+from PySide6.QtCore import QPoint, Qt, QTimer
+from PySide6.QtGui import QColor, QImage, QPalette
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -13,6 +13,7 @@ from document_manager.services.business import BusinessService
 from document_manager.services.settings import SettingsService
 from document_manager.ui.company_logo import read_logo
 from document_manager.ui.main_window import MainWindow
+from document_manager.ui.record_forms import record_dialog
 
 
 @pytest.fixture
@@ -170,3 +171,37 @@ def test_template_page_can_assign_category_publish_and_duplicate(shell):
     assert page.table.rowCount() == 2
     page.status_filter.setCurrentIndex(page.status_filter.findData("draft"))
     assert page.table.item(0, 0).text() == "Offer letter (copy)"
+
+
+def test_dropdowns_use_readable_popup_colors_with_dark_system_palette(qtbot, shell):
+    window, _settings, _business = shell
+    original = QApplication.palette()
+    dark = QPalette(original)
+    dark.setColor(QPalette.ColorRole.Base, QColor("#202124"))
+    dark.setColor(QPalette.ColorRole.Text, QColor("#ffffff"))
+    QApplication.setPalette(dark)
+
+    try:
+        dialog = record_dialog(window, "tenant", {}, None, lambda _values: None)
+        qtbot.addWidget(dialog)
+        dialog.show()
+        rental_types = dialog.fields.widgets["rental_type"]
+        for combo in (dialog.fields.widgets["identification_type"], rental_types):
+            chevron = QPoint(combo.width() - 15, combo.height() // 2)
+            qtbot.mouseClick(combo, Qt.MouseButton.LeftButton, pos=chevron)
+            try:
+                view = combo.view()
+                assert view.isVisible()
+                colors = view.palette()
+                assert colors.base().color().name() == "#ffffff"
+                assert colors.text().color().name() == "#152740"
+                assert colors.highlight().color().name() == "#28517b"
+                assert colors.highlightedText().color().name() == "#ffffff"
+                qtbot.keyClick(view, Qt.Key.Key_Home)
+                qtbot.keyClick(view, Qt.Key.Key_Return)
+            finally:
+                combo.hidePopup()
+        assert rental_types.currentData() == "daily"
+        dialog.close()
+    finally:
+        QApplication.setPalette(original)

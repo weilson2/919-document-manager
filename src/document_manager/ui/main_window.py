@@ -1,7 +1,6 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QComboBox,
     QHBoxLayout,
     QListWidget,
     QMainWindow,
@@ -18,6 +17,7 @@ from document_manager.ui.dashboard import Dashboard
 from document_manager.ui.records import RecordsPage
 from document_manager.ui.widgets import (
     HANDLED_ERRORS,
+    ComboBox,
     error_text,
     plain_label,
     scrollable,
@@ -61,11 +61,26 @@ QLabel#companyName { color: #152740; font-size: 19px; font-weight: 600; }
 QLabel#sectionTitle { font-weight: 700; }
 QLabel[metric="true"] { color: #152740; font-size: 23px; font-weight: 700; }
 QLabel { color: #33465d; }
-QLineEdit, QPlainTextEdit, QComboBox, QSpinBox {
+QLineEdit, QPlainTextEdit, QSpinBox {
     background: white; color: #152740; border: 1px solid #9aacc1;
     border-radius: 5px; padding: 6px;
 }
 QLineEdit:focus, QPlainTextEdit:focus { border: 1px solid #245da0; }
+QComboBox {
+    background: white; color: #152740; border: 1px solid #9aacc1;
+    border-radius: 6px; padding: 6px 30px 6px 9px;
+}
+QComboBox:hover { background: #f8fbff; border-color: #6d89a9; }
+QComboBox:focus, QComboBox:on { background: #f8fbff; border-color: #245da0; }
+QComboBox:disabled { background: #e9eef5; color: #64748b; border-color: #cbd5e1; }
+QComboBox::drop-down { subcontrol-origin: border; width: 30px; border: 0; }
+QComboBox QAbstractItemView {
+    background-color: white; color: #152740;
+    selection-background-color: #28517b; selection-color: white;
+    border: 1px solid #9aacc1; outline: 0;
+}
+QComboBox QAbstractItemView::item { padding: 6px 8px; }
+QComboBox QAbstractItemView::item:selected { background-color: #28517b; color: white; }
 QPushButton {
     background: #245589; color: white; font-weight: 600; border: 1px solid #245589;
     border-radius: 5px; padding: 7px 14px;
@@ -93,9 +108,9 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(840, 540)
         self.setStyleSheet(SHELL_STYLE)
 
-        self.company_selector = QComboBox()
+        self.company_selector = ComboBox()
         self.company_selector.setAccessibleName("Active company")
-        self.company_selector.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.company_selector.setSizeAdjustPolicy(ComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.company_selector.currentIndexChanged.connect(self._switch_selected_company)
         self.switch_status = plain_label(object_name="sidebarLabel")
         self.navigation = QListWidget()

@@ -2,7 +2,6 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
-    QComboBox,
     QDialog,
     QHBoxLayout,
     QHeaderView,
@@ -24,6 +23,7 @@ from document_manager.services.validation import (
 from document_manager.ui.record_forms import RecordDialog, record_dialog
 from document_manager.ui.widgets import (
     HANDLED_ERRORS,
+    ComboBox,
     FormField,
     error_text,
     plain_label,
@@ -50,12 +50,12 @@ class RecordsPage(QWidget):
         self.search = QLineEdit()
         self.search.setPlaceholderText(f"Search {'employees' if kind == 'employee' else kind + 's'}")
         self.search.setAccessibleName(self.search.placeholderText())
-        self.status_filter = QComboBox()
+        self.status_filter = ComboBox()
         self.status_filter.setAccessibleName("Status filter")
         self.status_filter.addItem("All statuses")
         for value, label in (TEMPLATE_STATUSES if kind == "template" else RECORD_STATUSES).items():
             self.status_filter.addItem(label, value)
-        self.type_filter = QComboBox()
+        self.type_filter = ComboBox()
         self.type_filter.setAccessibleName("Category filter" if kind == "template" else "Type filter")
         self._load_type_filter()
         self.archive_filter = QCheckBox("Archived")

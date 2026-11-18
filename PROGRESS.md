@@ -36,11 +36,11 @@ The workspace already contained an independent POS application, its database, an
 
 ### Manual acceptance
 
-1. Follow the README setup. Start with an unused test folder using `.\Start-DocumentManager.ps1 -DataDir "$env:TEMP\919-document-manager-acceptance"`.
+1. Follow the README setup. Start with an unused test folder using `.\.venv\Scripts\python.exe -m document_manager --data-dir "$env:TEMP\919-document-manager-acceptance"`.
 2. Verify that the Dashboard shows **919 RESTAURANT** and that each sidebar entry opens the corresponding page. Use **Ctrl+1** to return to the Dashboard and **Ctrl+,** to open Company Settings.
 3. Clear the company name and select **Save changes**. Verify the validation message. Enter a different name and a multiline address, save, and confirm the Dashboard shows the new name.
 4. Close and reopen using the same data folder. Confirm the saved changes persist. Verify that `document-manager.sqlite3` and `application.log` exist there.
-5. Run `.\Start-DocumentManager.ps1 -Check -DataDir "$env:TEMP\919-document-manager-acceptance"` and expect a success message and exit code `0`.
+5. Run `.\.venv\Scripts\python.exe -m document_manager --check --data-dir "$env:TEMP\919-document-manager-acceptance"` and expect a success message and exit code `0`.
 
 ### Current limitations
 
@@ -73,12 +73,13 @@ The workspace already contained an independent POS application, its database, an
 - Dependency and lint checks passed. The source distribution and wheel built successfully.
 - The installed 0.2.0 wheel opened a fresh workspace and upgraded a workspace created with the installed M0 wheel. The edited M0 profile survived the upgrade.
 - M1 screens were inspected with Qt's offscreen renderer. Interactive Windows acceptance is pending.
+- Dropdown follow-up verified readable popup text and keyboard selection with a dark system palette. The regression suite now has 29 passing tests.
 
 ### Manual acceptance
 
-1. Launch M1 against a copy of an accepted M0 workspace or use a fresh folder with `.\Start-DocumentManager.ps1 -DataDir "$env:TEMP\919-document-manager-m1"`. Verify that the existing or seeded company opens and that the ten sidebar destinations open.
+1. Launch M1 against a copy of an accepted M0 workspace or use a fresh folder with `.\.venv\Scripts\python.exe -m document_manager --data-dir "$env:TEMP\919-document-manager-m1"`. Verify that the existing or seeded company opens and that the ten sidebar destinations open.
 2. Edit contact information, choose a PNG or JPEG logo, and change the company page size or margins. Save. Add a second company and use **Make default** there. Switch through the sidebar and verify the settings differ between companies.
-3. Create a tenant using Dashboard **New tenant**. Test search, rental-type and status filters, and edit the deposit. Create an employee including optional payroll attributes. Try a duplicate employee number and a MYR value of `12.345`; both should be rejected.
+3. Create a tenant using Dashboard **New tenant**. Open the identification, rental type, and status lists and verify that each option is readable. Test search and filters, then edit the deposit. Create an employee including optional payroll attributes and check the salary-type list. Try a duplicate employee number and a MYR value of `12.345`; both should be rejected.
 4. Archive a tenant and an employee. Verify their dashboard counts decrease, then open their **Archived** filters and restore them. Switch companies and verify that the original records, counts, and activity only appear in the original company.
 5. In **Templates**, create a category and template, assign the category, publish the metadata, rename the template, then publish again. Duplicate the template and verify that the copy is a draft. Archive and restore it. Open **Document Editor** to verify the placeholder.
 6. Close and reopen the same workspace. Verify the default company opens and saved details, records, and template states persist.

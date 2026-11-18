@@ -4,7 +4,8 @@ from datetime import date
 from decimal import Decimal
 
 from pydantic import ValidationError
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPointF, Qt
+from PySide6.QtGui import QPainter, QPen, QPolygonF
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -13,6 +14,9 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QScrollArea,
     QSpinBox,
+    QStyle,
+    QStyleOptionComboBox,
+    QStylePainter,
     QWidget,
 )
 from sqlalchemy.exc import SQLAlchemyError
@@ -42,6 +46,35 @@ def scrollable(widget: QWidget) -> QScrollArea:
     return scroll
 
 
+class ComboBox(QComboBox):
+    def paintEvent(self, _event) -> None:
+        option = QStyleOptionComboBox()
+        self.initStyleOption(option)
+        control = QStyle.ComplexControl.CC_ComboBox
+        arrow = QStyle.SubControl.SC_ComboBoxArrow
+        arrow_rect = self.style().subControlRect(control, option, arrow, self)
+
+        # Keep Qt's field and label painting and replace the raised system arrow.
+        option.subControls &= ~arrow
+        painter = QStylePainter(self)
+        painter.drawComplexControl(control, option)
+        painter.drawControl(QStyle.ControlElement.CE_ComboBoxLabel, option)
+
+        center = QPointF(arrow_rect.center())
+        direction = -1 if option.state & QStyle.StateFlag.State_On else 1
+        pen = QPen(option.palette.buttonText().color(), 1.6)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        painter.setPen(pen)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.drawPolyline(QPolygonF([
+            center + QPointF(-4, -2 * direction),
+            center + QPointF(0, 2 * direction),
+            center + QPointF(4, -2 * direction),
+        ]))
+        painter.end()
+
+
 @dataclass(frozen=True)
 class FormField:
     key: str
@@ -69,7 +102,7 @@ class FormFields:
     @staticmethod
     def _make_widget(field: FormField):
         if field.kind == "select":
-            widget = QComboBox()
+            widget = ComboBox()
             if field.optional:
                 widget.addItem("—", None)
             for value, label in field.options:
