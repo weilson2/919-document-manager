@@ -9,6 +9,7 @@ import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table
 import Text from "@tiptap/extension-text";
 import Underline from "@tiptap/extension-underline";
 import { UndoRedo } from "@tiptap/extensions";
+import { managedImageAttributes, managedImageView } from "./image_view";
 
 const alignments = ["left", "center", "right", "justify"];
 const fonts = ["Arial", "Calibri", "Georgia", "Segoe UI", "Times New Roman", "Verdana", "Courier New"];
@@ -134,11 +135,11 @@ function managedImage(sessionId: string) {
       return { assetId: { default: null }, alt: { default: "" }, width: { default: 70 } };
     },
     renderHTML({ node }) {
-      const { assetId, alt, width } = node.attrs;
-      const src = typeof assetId === "string" && /^[0-9a-f]{64}$/.test(assetId)
-        ? `image/${sessionId}/${assetId}.png` : "";
-      return ["figure", {},
-        ["img", { src, alt: typeof alt === "string" ? alt : "", style: `width:${integer(width, 10, 100) ?? 70}%` }]];
+      const { src, alt, width } = managedImageAttributes(node, sessionId);
+      return ["figure", {}, ["img", { src, alt, style: `width:${width}%` }]];
+    },
+    addNodeView() {
+      return (props) => managedImageView(props, sessionId);
     },
   });
 }

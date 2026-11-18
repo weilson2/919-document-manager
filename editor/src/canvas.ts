@@ -133,6 +133,7 @@ export class PageCanvas {
           const snapshot = this.content.cloneNode(true) as HTMLElement;
           snapshot.removeAttribute("contenteditable");
           snapshot.removeAttribute("role");
+          snapshot.querySelectorAll(".image-resize-handle").forEach((handle) => handle.remove());
           snapshot.setAttribute("aria-hidden", "true");
           snapshot.style.top = `-${this.pages[index].start}px`;
           snapshot.style.width = `${this.content.clientWidth}px`;

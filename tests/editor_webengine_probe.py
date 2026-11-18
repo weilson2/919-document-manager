@@ -6,7 +6,7 @@ from pathlib import Path
 from time import monotonic
 from unittest.mock import patch
 
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, Qt, QTimer
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QPoint, Qt, QTimer
 from PySide6.QtGui import QImage
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
@@ -174,7 +174,17 @@ def exercise_visual_tools(page, status, responses):
     assert (settings.page_size, settings.orientation, settings.margin_left) == ("A5", "landscape", 12)
 
 
-def exercise_images(page, status, workspace):
+def image_point(page, selector):
+    x, y = json.loads(evaluate(page, f"""
+        (() => {{
+          const bounds = document.querySelector({json.dumps(selector)}).getBoundingClientRect();
+          return JSON.stringify([Math.round(bounds.left + bounds.width / 2), Math.round(bounds.top + Math.min(bounds.height / 2, 14))]);
+        }})()
+    """))
+    return QPoint(x, y)
+
+
+def exercise_images(page, status, workspace, view):
     invalid = workspace / "invalid.png"
     invalid.write_text("<svg/>", encoding="utf-8")
     tall = workspace / "tall.png"
@@ -197,6 +207,33 @@ def exercise_images(page, status, workspace):
     click(page, "#preview-toggle")
     assert evaluate(page, "Math.max(...[...document.querySelectorAll('.preview-page')].map(p => p.offsetHeight))") > 148 * 96 / 25.4
     click(page, "#preview-toggle")
+    control(page, "#zoom", "fit")
+    evaluate(page, "document.querySelector('.tiptap img').scrollIntoView({block: 'start', inline: 'nearest'})")
+    QTest.qWait(100)
+    surface = view.focusProxy()
+    QTest.mouseClick(surface, Qt.MouseButton.LeftButton, pos=image_point(page, ".tiptap img"))
+    wait_for(page, "!document.getElementById('image-properties').hidden", True)
+    wait_for(page, "document.getElementById('image-width').value", "70")
+    control(page, "#image-width", "60")
+    wait_for(page, "document.querySelector('.managed-image-frame').style.width", "60%")
+
+    handle = ".ProseMirror-selectednode .image-resize-handle"
+    evaluate(page, f"document.querySelector({json.dumps(handle)}).scrollIntoView({{block: 'center', inline: 'nearest'}})")
+    QTest.qWait(100)
+    start = image_point(page, handle)
+    span = evaluate(page, "document.querySelector('.ProseMirror-selectednode').getBoundingClientRect().width")
+    end = start - QPoint(round(span * 0.2), 0)
+    QTest.mousePress(surface, Qt.MouseButton.LeftButton, pos=start)
+    QTest.mouseMove(surface, end, 50)
+    QTest.mouseRelease(surface, Qt.MouseButton.LeftButton, pos=end)
+    wait_for(page, "document.querySelector('.managed-image-frame').style.width", "40%")
+    wait_for(page, "document.getElementById('image-width').value", "40")
+    click(page, '[data-command="undo"]')
+    wait_for(page, "document.querySelector('.managed-image-frame').style.width", "60%")
+    click(page, '[data-command="redo"]')
+    wait_for(page, "document.querySelector('.managed-image-frame').style.width", "40%")
+    click(page, "#verify-document")
+    wait_for(page, status, "Document structure verified")
     return src
 
 
@@ -272,7 +309,7 @@ def main(workspace: Path) -> None:
                 assert evaluate(page, status) == "Document structure verified"
 
             exercise_visual_tools(page, status, responses)
-            image_url = exercise_images(page, status, workspace)
+            image_url = exercise_images(page, status, workspace, host._view)
             assert_image_blocked(page, "https://outside.invalid/logo.png")
             window.company_selector.setCurrentIndex(window.company_selector.findData(other))
             new_page = host._page

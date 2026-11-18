@@ -51,6 +51,8 @@ The editable canvas uses one flowing document with page-break guides. **Preview*
 
 The editor uses bundled Tiptap 3 and ProseMirror in an off-the-record Qt WebEngine profile. **Verify document** confirms that the versioned JSON survives a round trip through the company-bound WebChannel. **Insert image** opens the native Python file picker, accepts PNG and JPEG up to 8 MB and 4096 × 4096 pixels, and writes a PNG copy under `editor-assets/<company-id>/` in the local workspace. Only images authorized for the active editor session can load.
 
+To resize a photo, select it and drag the handle in its bottom-right corner, or enter an exact width in the **Image** panel. Width is a percentage of the text area. The photo keeps its aspect ratio.
+
 The editor session is temporary. Switching companies or closing the app clears the document. Imported image files remain in the workspace. Dynamic fields, saving drafts, publishing, and final export are later milestones.
 
 ## Project layout

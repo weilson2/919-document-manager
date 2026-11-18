@@ -141,7 +141,7 @@ The workspace already contained an independent POS application, its database, an
 1. From `919_DOCUMENT_MANAGER`, launch with `.\.venv\Scripts\python.exe -m document_manager --data-dir "$env:TEMP\919-document-manager-m22"` and open **Document Editor**.
 2. Type a heading and some Unicode text. Check the outline, apply bold, italic, underline, font size, text color and spacing, and use **Ctrl+Z** to undo a change.
 3. Insert a table, edit cells, and add and delete a row and column. Open **Preview** after adding enough text and rows for several pages. Use the page list and change zoom. Verify that the logical page breaks stay in place and that rows and text are visible.
-4. Change paper size, orientation, and margins. Insert a PNG or JPEG with the file picker and change its width and description. Try a tall image and check that an oversized warning appears while the image remains visible. An SVG or invalid image should be rejected.
+4. Change paper size, orientation, and margins. Insert a PNG or JPEG, select it, and drag its bottom-right resize handle. Undo the drag, then enter an exact width and description in the **Image** panel. Try a tall image and check that an oversized warning appears while the image remains visible. An SVG or invalid image should be rejected.
 5. Select **Verify document** and expect **Document structure verified**. Switch companies and confirm that the new editor opens blank. Repeat with the network disconnected to confirm offline startup.
 
 ### Current limitations

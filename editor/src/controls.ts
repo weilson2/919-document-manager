@@ -1,5 +1,7 @@
 import type { Editor } from "@tiptap/core";
+import { NodeSelection } from "@tiptap/pm/state";
 import type { PageCanvas } from "./canvas";
+import { updateImageAttributes } from "./image_view";
 import { type PageSettings, margins, parsePageSettings } from "./protocol";
 
 export function element<T extends HTMLElement>(id: string): T {
@@ -72,10 +74,14 @@ export function bindControls(
   onChange("font-size", ({ value }) => chain().setMark("textStyle", { fontSize: value ? Number(value) : null }).run());
   onChange("text-color", ({ value }) => chain().setMark("textStyle", { color: value }).run());
   onChange("table-borders", ({ value }) => chain().updateAttributes("table", { borderStyle: value }).run());
+  const setImageProperties = (attributes: object) => chain().command(({ tr, dispatch }) => {
+    if (!(tr.selection instanceof NodeSelection) || tr.selection.node.type.name !== "image") return false;
+    return !dispatch || updateImageAttributes(tr, tr.selection.from, attributes);
+  }).run();
   onChange("image-width", (control) => {
-    if (control.value && control.checkValidity()) chain().updateAttributes("image", { width: Number(control.value) }).run();
+    if (control.value && control.checkValidity()) setImageProperties({ width: Number(control.value) });
   });
-  onChange("image-alt", ({ value }) => chain().updateAttributes("image", { alt: value }).run());
+  onChange("image-alt", ({ value }) => setImageProperties({ alt: value }));
 
   function setPageSettings(update: Partial<PageSettings>): void {
     try {
@@ -139,7 +145,10 @@ export function bindControls(
     setValue("text-color", text.color ?? "#152740");
     element("table-properties").hidden = !editor.isActive("table");
     setValue("table-borders", editor.getAttributes("table").borderStyle ?? "grid");
-    element("image-properties").hidden = !editor.isActive("image");
+    const imageProperties = element("image-properties");
+    const imageSelected = editor.isActive("image");
+    if (imageSelected && imageProperties.hidden) inspector.parentElement!.scrollTop = 0;
+    imageProperties.hidden = !imageSelected;
     const image = editor.getAttributes("image");
     setValue("image-width", image.width);
     setValue("image-alt", image.alt);

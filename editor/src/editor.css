@@ -167,6 +167,27 @@ button[aria-pressed="true"] { background: #e1eeff; color: #173e69; border-color:
 .tiptap figure { display: block; margin: 0 0 8pt; }
 .tiptap img { max-width: 100%; height: auto; display: block; }
 .tiptap .ProseMirror-selectednode img { outline: 2px solid #245589; }
+.managed-image-frame { position: relative; }
+.managed-image-frame img { width: 100%; }
+.image-resize-handle {
+  display: none;
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  padding: 0;
+  border: 2px solid white;
+  border-radius: 4px;
+  background: #245589;
+  color: white;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+.tiptap .ProseMirror-selectednode .image-resize-handle { display: block; }
+.image-resize-handle::after { content: "↘"; font-size: 16px; }
+.image-resize-handle:enabled:hover { background: #173e69; }
 
 .page-guides { position: absolute; inset: 0; pointer-events: none; }
 .page-guide { position: absolute; left: 0; right: 0; border-top: 1px dashed #6584a7; }
