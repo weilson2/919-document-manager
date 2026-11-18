@@ -41,6 +41,7 @@ export function bindFields(editor: Editor): void {
   const form = element<HTMLFormElement>("field-form");
   const values = element("field-type-values");
   const message = element("field-message");
+  const usage = element("field-usage");
   const key = element<HTMLInputElement>("field-key");
   const label = element<HTMLInputElement>("field-label");
   const kind = element<HTMLSelectElement>("field-type");
@@ -70,16 +71,16 @@ export function bindFields(editor: Editor): void {
     if (flagTypes.has(type)) {
       const options: [string, string][] = type === "checkbox" ? [["true", "Checked"], ["false", "Unchecked"]]
         : [["true", "True"], ["false", "False"]];
-      const control = add("Default value", select([["", "No default"], ...options]), "field-default",
+      const control = add("Default when filling", select([["", "No default"], ...options]), "field-default",
         original === null ? "" : String(original));
       readDefault = () => control.value === "" ? null : control.value === "true";
     } else if (type === "date_range") {
       const range = typeof original === "object" ? original : null;
-      const start = add("Default start", input("date"), "field-default-start", range?.start);
-      const end = add("Default end", input("date"), "field-default-end", range?.end);
+      const start = add("Default start date", input("date"), "field-default-start", range?.start);
+      const end = add("Default end date", input("date"), "field-default-end", range?.end);
       readDefault = () => start.value || end.value ? { start: start.value, end: end.value } : null;
     } else {
-      const control = add("Default value", type === "multiline" || type === "address"
+      const control = add("Default when filling", type === "multiline" || type === "address"
         ? document.createElement("textarea") : input(type === "date" ? "date" : "text"),
       "field-default", typeof original === "string" ? original : null);
       readDefault = () => control.value === "" ? null : control.value;
@@ -124,12 +125,32 @@ export function bindFields(editor: Editor): void {
     });
   }
 
+  function referenceCount(): number {
+    let count = 0;
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === "field" && node.attrs.fieldId === id) count += 1;
+    });
+    return count;
+  }
+
+  function refreshUsage(): void {
+    if (!formDefinition) {
+      usage.textContent = "";
+      return;
+    }
+    const count = referenceCount();
+    if (count === 0) usage.textContent = "Ready to insert.";
+    else if (count === 1) usage.textContent = "Used in 1 place.";
+    else usage.textContent = "Used in " + count + " places. They all share these settings.";
+  }
+
   function show(field?: FieldDefinition): void {
     formDefinition = field;
     panel.hidden = !creating && !field;
     library.value = id ?? "";
     insert.disabled = !field;
     remove.hidden = !field;
+    refreshUsage();
     if (panel.hidden) return;
     key.value = field?.key ?? "";
     label.value = field?.label ?? "";
@@ -177,7 +198,7 @@ export function bindFields(editor: Editor): void {
       id = field.id;
       creating = false;
       writeFields(validated);
-      message.textContent = "Field saved.";
+      message.textContent = "Field settings saved.";
     } catch (error) {
       message.textContent = error instanceof Error ? error.message : "Could not save the field.";
     }
@@ -197,11 +218,7 @@ export function bindFields(editor: Editor): void {
     }
   });
   remove.addEventListener("click", () => {
-    let referenced = false;
-    editor.state.doc.descendants((node) => {
-      if (node.type.name === "field" && node.attrs.fieldId === id) referenced = true;
-    });
-    if (referenced) {
+    if (referenceCount() > 0) {
       message.textContent = "Remove all references from the document before deleting this field.";
       return;
     }
@@ -219,6 +236,7 @@ export function bindFields(editor: Editor): void {
     }
     const selection = selectedField(editor);
     if (transaction.selectionSet && selection && (selection !== id || creating)) choose(selection);
+    else if (transaction.docChanged) refreshUsage();
   });
   refreshLibrary();
   available.hidden = false;

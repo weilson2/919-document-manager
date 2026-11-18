@@ -18,7 +18,9 @@ from document_manager.ui.record_forms import record_dialog
 
 
 @pytest.fixture
-def shell(qtbot, database_engine):
+def shell(qtbot, database_engine, monkeypatch):
+    # WebEngine startup is covered in a separate process with the real renderer.
+    monkeypatch.setattr(DocumentEditor, "prepare_view", lambda _editor: False)
     settings = SettingsService(database_engine)
     business = BusinessService(database_engine)
     window = MainWindow(settings, business, settings.get_default_company_id(), settings.get_company())
@@ -27,9 +29,7 @@ def shell(qtbot, database_engine):
     return window, settings, business
 
 
-def test_navigation_and_company_settings(qtbot, shell, monkeypatch):
-    # WebEngine startup is covered in a separate process that tests the real renderer.
-    monkeypatch.setattr(DocumentEditor, "activate", lambda _editor: None)
+def test_navigation_and_company_settings(qtbot, shell):
     window, settings, _business = shell
     assert window.company_name.text() == "919 RESTAURANT"
     qtbot.mouseClick(window.dashboard.settings_button, Qt.MouseButton.LeftButton)

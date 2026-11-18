@@ -186,7 +186,7 @@ The user reported **Overall PASS**, with all nine checks passing.
 1. Open a separate workspace with `.\.venv\Scripts\python.exe -m document_manager --data-dir "$env:TEMP\919-document-manager-m23"`, then open **Document Editor**.
 2. Choose **New field**, enter the key `rent_amount` and label `月租 · Rent`, select **Currency (MYR)**, and set the default to `120.005`. Verify Save rejects it. Change it to `120.50`, select an RM display format, and save.
 3. Insert the field twice. Click one occurrence, rename its key and label, and save. Check that both labels update and that Undo and Redo restore both. Try saving a second definition with the same key, and try deleting the referenced definition. Both should be rejected.
-4. Remove the two inline references, then delete the definition and undo that deletion. Select **Verify document** and expect **Document structure verified**.
+4. Remove the two inline references, then delete the definition and undo that deletion. Select **Check structure** and expect **Document structure verified**.
 5. Disconnect from the network, reopen the separate workspace, and repeat a field insertion. Switch companies to confirm the new session opens with an empty field list.
 
 M2.4 is pending acceptance of M2.3 and implementation approval.

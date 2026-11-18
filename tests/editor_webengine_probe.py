@@ -278,8 +278,11 @@ def exercise_fields(page, status, responses):
     click(page, "#insert-field")
     click(page, "#insert-field")
     wait_for(page, chips, 2)
+    usage = "document.getElementById('field-usage').textContent"
+    wait_for(page, usage, "Used in 2 places. They all share these settings.")
     click(page, '[data-command="undo"]')
     wait_for(page, chips, 1)
+    wait_for(page, usage, "Used in 1 place.")
     click(page, '[data-command="redo"]')
     wait_for(page, chips, 2)
 
@@ -329,6 +332,16 @@ def exercise_fields(page, status, responses):
     click(page, '[data-command="undo"]')
     wait_for(page, library, 3)
 
+    control(page, "#field-library", field_id)
+    cell = ".tiptap tr:last-child td:last-child p"
+    select_text(page, cell, select_all=True)
+    click(page, "#insert-field")
+    wait_for(page, chips, 3)
+    wait_for(page, f"document.querySelector('{cell}').textContent", "月租 · Rent")
+    click(page, '[data-command="undo"]')
+    wait_for(page, chips, 2)
+    wait_for(page, f"document.querySelector('{cell}').textContent", "Last row — 麻坡")
+
 
 def main(workspace: Path) -> None:
     register_editor_scheme()
@@ -348,12 +361,18 @@ def main(workspace: Path) -> None:
 
     try:
         with patch.object(EditorSession, "handle", capture):
-            window.show()
-            window.navigation.setCurrentRow(EDITOR_INDEX)
             host = window.document_editor
+            prepared_page = host._view.page()
+            assert host._view.focusProxy() is not None
+            assert host._session is None
+            window.show()
+            native_window_id = window.winId()
+            window.navigation.setCurrentRow(EDITOR_INDEX)
             page = host._page
+            assert page is prepared_page
             status = "document.getElementById('editor-status')?.textContent"
             wait_for(page, status, "Editor ready")
+            assert window.winId() == native_window_id
             assert page.url().toEncoded() == ENTRY_URL
             assert page.profile().isOffTheRecord()
             assert page.renderProcessPid() > 0
@@ -391,6 +410,11 @@ def main(workspace: Path) -> None:
             image_url = exercise_images(page, status, workspace, host._view)
             assert_image_blocked(page, "https://outside.invalid/logo.png")
             exercise_fields(page, status, responses)
+            window.navigation.setCurrentRow(0)
+            window.navigation.setCurrentRow(EDITOR_INDEX)
+            assert window.winId() == native_window_id
+            assert host._page is page
+            assert evaluate(page, "document.querySelectorAll('#editor .document-field').length") == 2
             window.company_selector.setCurrentIndex(window.company_selector.findData(other))
             new_page = host._page
             assert new_page is not page

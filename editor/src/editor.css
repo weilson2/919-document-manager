@@ -80,8 +80,9 @@ button[aria-pressed="true"] { background: #e1eeff; color: #173e69; border-color:
 .properties .field-required { grid-template-columns: 1fr auto; align-items: center; }
 #field-required { width: auto; min-height: 0; }
 .field-actions { display: flex; flex-wrap: wrap; gap: 4px; }
-#field-message { color: #435973; overflow-wrap: anywhere; margin: 6px 0 0; }
-#field-message:empty { display: none; }
+#field-message, #field-usage, .field-insert-help { color: #435973; overflow-wrap: anywhere; margin: 6px 0 0; }
+#field-usage { margin: 0 0 8px; }
+#field-message:empty, #field-usage:empty { display: none; }
 .document-field {
   display: inline;
   padding: 0 0.3em;

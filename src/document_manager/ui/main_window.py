@@ -173,6 +173,7 @@ class MainWindow(QMainWindow):
 
         self._load_company(company_id, profile)
         self._reload_companies()
+        self.document_editor.prepare_view()
 
     def _reload_companies(self) -> None:
         try:

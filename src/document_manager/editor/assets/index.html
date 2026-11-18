@@ -41,7 +41,7 @@
           <select id="zoom" disabled><option value="fit" selected>Fit width</option><option value="0.5">50%</option>
             <option value="0.75">75%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select>
           <button id="preview-toggle" type="button" aria-pressed="false" disabled>Preview</button>
-          <button id="verify-document" type="button" disabled>Verify document</button>
+          <button id="verify-document" type="button" title="Checks the document structure, field definitions, and references" disabled>Check structure</button>
         </div>
       </header>
       <div class="editor-layout">
@@ -59,6 +59,7 @@
             <label class="sr-only" for="field-library">Document fields</label>
             <select id="field-library"></select>
             <button id="insert-field" type="button" disabled>Insert field</button>
+            <p class="field-insert-help">Place the cursor to add a placeholder. Select text first to replace it.</p>
           </section>
           <section><h2>Pages</h2><nav id="page-nav" aria-label="Pages"></nav></section>
         </aside>
@@ -78,14 +79,15 @@
             <legend class="sr-only">Document properties</legend>
             <section id="field-properties" hidden>
               <h2>Field properties</h2>
+              <p id="field-usage" aria-live="polite"></p>
               <form id="field-form">
-                <label>Field key <input id="field-key" required maxlength="64" placeholder="tenant_name"></label>
-                <label>Label <input id="field-label" required maxlength="120"></label>
+                <label>Field key (internal) <input id="field-key" required maxlength="64" placeholder="tenant_name"></label>
+                <label>Label on document <input id="field-label" required maxlength="120"></label>
                 <label>Type <select id="field-type"></select></label>
                 <label class="field-required">Required <input id="field-required" type="checkbox"></label>
                 <div id="field-type-values"></div>
                 <div class="field-actions">
-                  <button type="submit">Save field</button>
+                  <button type="submit">Save field settings</button>
                   <button id="delete-field" type="button">Delete field</button>
                 </div>
                 <p id="field-message" role="status"></p>

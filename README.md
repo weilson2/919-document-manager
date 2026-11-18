@@ -49,7 +49,7 @@ Open **Document Editor** in the sidebar and wait for **Editor ready**. Use the t
 
 The editable canvas uses one flowing document with page-break guides. **Preview** displays individual A4 or A5 sheets using the same measured content and margins. Zoom scales the view and preserves logical page breaks. An oversized element can expand a preview sheet and triggers a warning. Preview pagination depends on the installed fonts and Qt WebEngine's layout.
 
-The editor uses bundled Tiptap 3 and ProseMirror in an off-the-record Qt WebEngine profile. **Verify document** confirms that the versioned JSON survives a round trip through the company-bound WebChannel. **Insert image** opens the native Python file picker, accepts PNG and JPEG up to 8 MB and 4096 × 4096 pixels, and writes a PNG copy under `editor-assets/<company-id>/` in the local workspace. Only images authorized for the active editor session can load.
+The editor uses bundled Tiptap 3 and ProseMirror in an off-the-record Qt WebEngine profile. **Check structure** confirms that the versioned JSON survives a round trip through the company-bound WebChannel. **Insert image** opens the native Python file picker, accepts PNG and JPEG up to 8 MB and 4096 × 4096 pixels, and writes a PNG copy under `editor-assets/<company-id>/` in the local workspace. Only images authorized for the active editor session can load.
 
 To resize a photo, select it and drag the handle in its bottom-right corner, or enter an exact width in the **Image** panel. Width is a percentage of the text area. The photo keeps its aspect ratio.
 
@@ -57,7 +57,7 @@ The editor session is temporary. Switching companies or closing the app clears t
 
 ### Dynamic fields
 
-Choose **New field** in the left panel, fill in **Field properties**, and select **Save field**. Select the definition in the field list and use **Insert field** at each location. Click an inline field to edit the shared definition. A key can be renamed without changing its references. Delete a referenced field by first removing all its inline occurrences, then selecting **Delete field**. Use **Undo** or **Redo** for changes to definitions and document references.
+Choose **New field** in the left panel, fill in **Field properties**, and select **Save field settings**. Place the cursor and click **Insert field** to add a placeholder, or select existing text first to replace it. The **Label on document** appears on the page. The **Field key** identifies the value when filling a document. Each placement of the same field shares its settings. Create a separate field for each independent value, such as basic salary and total deductions. Click an inline field to edit its settings. Delete a referenced field by first removing all its inline occurrences, then selecting **Delete field**. Use **Undo** or **Redo** for changes to definitions and document references.
 
 Keys begin with a lowercase letter and can contain lowercase letters, digits, and underscores. Labels support Unicode. Defaults and options are validated for the selected field type:
 
@@ -70,7 +70,7 @@ Keys begin with a lowercase letter and can contain lowercase letters, digits, an
 | Dropdown | Distinct choices, one per line, with an optional default from that list |
 | Checkbox, Boolean | Optional true or false default and a display style |
 
-**Verify document** validates the version 3 document envelope, including the separate field definitions and every inline reference. Versions 1 and 2 remain supported by the bridge. The formatting and validation rules are stored with the field definition for later use.
+**Check structure** validates the version 3 document envelope, including the separate field definitions and every inline reference. Versions 1 and 2 remain supported by the bridge. Defaults and validation rules apply to field values. Amounts typed directly on the page remain ordinary text.
 
 ## Project layout
 

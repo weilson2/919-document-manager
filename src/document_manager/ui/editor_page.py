@@ -47,16 +47,14 @@ class DocumentEditor(QWidget):
             if self.isVisible():
                 self.activate()
 
-    def activate(self) -> None:
-        if self._session is not None or self._company_id is None:
-            return
+    def prepare_view(self) -> bool:
         if self._profile is None:
             try:
                 resources = EditorResources(self._images, self)
             except OSError:
                 logger.exception("Editor resources unavailable")
                 self._status.setText("Editor files are unavailable. Reinstall 919 Document Manager and try again.")
-                return
+                return False
             # Create the view before its profile so the owned pages are destroyed first.
             self._view = QWebEngineView(self)
             self._view.setAccessibleName("Local document editor")
@@ -67,11 +65,20 @@ class DocumentEditor(QWidget):
             self._profile.installUrlSchemeHandler(SCHEME, resources)
             resources.setParent(self._profile)
             self._profile.downloadRequested.connect(lambda item: item.cancel())
+            page = EditorWebPage(self._profile, self._view)
+            self._view.setPage(page)
+            # Initialize the blank page's rendering widget before the main window is shown.
+            # On Windows Qt can recreate a visible native window when it first needs WebEngine compositing.
+            page.toPlainText(lambda _text: None)
+        return True
 
+    def activate(self) -> None:
+        if self._session is not None or self._company_id is None or not self.prepare_view():
+            return
         self._status.setText("Opening the local editor…")
         self._status.show()
         previous = self._page
-        page = EditorWebPage(self._profile, self._view)
+        page = self._view.page() if previous is None else EditorWebPage(self._profile, self._view)
         self._page = page
         company_id = self._company_id
         self._session = EditorSession(
@@ -91,8 +98,8 @@ class DocumentEditor(QWidget):
 
         page.loadFinished.connect(lambda ok: self._on_loaded(page, ok))
         page.renderProcessTerminated.connect(lambda *_: self._on_terminated(page))
-        self._view.setPage(page)
         if previous is not None:
+            self._view.setPage(page)
             previous.deleteLater()
         self._view.show()
         page.load(QUrl.fromEncoded(ENTRY_URL))
