@@ -91,7 +91,7 @@ The workspace already contained an independent POS application, its database, an
 
 ## M2.1 · Editor Foundation
 
-**Status:** Awaiting acceptance.
+**Status:** ACCEPTED on 18 November 2026.
 
 ### Delivered
 
@@ -102,7 +102,7 @@ The workspace already contained an independent POS application, its database, an
 
 ### Verification completed
 
-- All 56 tests passed on Windows 11 x64, including the 29 M0/M1 regression tests.
+- All 56 tests passed on Windows 11 x64 for implementation commit `b39b672`, including the 29 M0/M1 regression tests. The user confirmed manual Windows 11 acceptance.
 - Two subprocess tests started real Qt WebEngine renderers from source and from an installed wheel. Both verified the WebChannel handshake, exact Unicode and paragraph structure, blocked navigation, and a fresh session on company switch.
 - The wheel was installed with pip's index disabled and opened without Node/npm on PATH. The renderer ran offscreen with GPU acceleration disabled, DNS resolution blocked, and a loopback-only proxy. The editor enforced its normal URL allowlist.
 - TypeScript type checking, bundle reproducibility, Python dependency and lint checks, and the Python source distribution and wheel builds passed.
@@ -117,7 +117,5 @@ The workspace already contained an independent POS application, its database, an
 ### Current limitations
 
 - The foundation handles plain text and paragraphs. It applies size limits and keeps edits only in the current company session.
-- The visual editing panels, formatting, pagination, dynamic fields, and draft and publish workflows are planned for M2.2 through M2.4. Interactive Windows 11 acceptance is pending.
-
-M2.2 is pending acceptance of M2.1.
+- The visual editing panels, formatting, pagination, dynamic fields, and draft and publish workflows are planned for M2.2 through M2.4.
 
