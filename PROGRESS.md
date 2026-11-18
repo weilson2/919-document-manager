@@ -121,7 +121,7 @@ The workspace already contained an independent POS application, its database, an
 
 ## M2.2 · Visual Editing
 
-**Status:** Awaiting acceptance.
+**Status:** ACCEPTED on 18 November 2026.
 
 ### Delivered
 
@@ -132,11 +132,27 @@ The workspace already contained an independent POS application, its database, an
 
 ### Verification completed
 
-- All 66 tests passed on Windows 11 x64. The real Qt renderer tests exercised formatting and keyboard input, editable tables, valid and invalid images, Unicode serialization, multi-page layout, zoom stability, preview, and blocked network and cross-company image requests.
+- All 66 tests passed on Windows 11 x64 for implementation commit `1834301` and after the image resizing follow-up `2e7c794`. The real Qt renderer tests exercised formatting and keyboard input, editable tables, valid and invalid images, Unicode serialization, multi-page layout, zoom stability, preview, and blocked network and cross-company image requests. The follow-up also verified drag resizing, exact width entry, and undo/redo.
 - The installed-wheel renderer also passed with pip's index disabled, Node/npm removed from PATH, and external networking disabled for the browser probe.
 - TypeScript checks, bundle reproducibility, Python lint and dependency checks, and the source distribution and wheel builds passed.
 
-### Windows 11 manual acceptance
+### Windows 11 manual acceptance results
+
+The user reported **Overall PASS**, with all nine checks passing.
+
+| 验收项目 | 结果 |
+| --- | --- |
+| 合同中英文文字完整 | PASS |
+| A4 多页分页正常 | PASS |
+| 调整 Zoom 不改变分页 | PASS |
+| 字体、字号、对齐正常 | PASS |
+| 薪水单表格可增加/删除行列 | PASS |
+| Undo / Redo 正常 | PASS |
+| Logo 插入和调整正常 | PASS |
+| Preview 返回后内容完整 | PASS |
+| 没有程序崩溃或严重错误 | PASS |
+
+### Windows 11 manual acceptance steps
 
 1. From `919_DOCUMENT_MANAGER`, launch with `.\.venv\Scripts\python.exe -m document_manager --data-dir "$env:TEMP\919-document-manager-m22"` and open **Document Editor**.
 2. Type a heading and some Unicode text. Check the outline, apply bold, italic, underline, font size, text color and spacing, and use **Ctrl+Z** to undo a change.
@@ -148,7 +164,7 @@ The workspace already contained an independent POS application, its database, an
 
 - Preview uses Chromium's measured layout and has been verified for the cases above. It is a visual preview for this editor.
 - Undo/redo applies to document content and formatting. Page setup is adjusted separately. Documents remain temporary, and imported asset files remain in the company workspace.
-- Dynamic fields, draft persistence, publishing, and final PDF export are future milestones. Interactive Windows 11 acceptance is pending.
+- Dynamic fields, draft persistence, publishing, and final PDF export are future milestones.
 
-M2.3 is pending acceptance of M2.2.
+M2.3 is pending implementation approval.
 
