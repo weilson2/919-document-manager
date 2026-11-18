@@ -1,6 +1,5 @@
 import { Extension, Mark, Node } from "@tiptap/core";
 import Bold from "@tiptap/extension-bold";
-import Document from "@tiptap/extension-document";
 import Heading from "@tiptap/extension-heading";
 import Italic from "@tiptap/extension-italic";
 import { BulletList, ListItem, ListKeymap, OrderedList } from "@tiptap/extension-list";
@@ -10,6 +9,7 @@ import Text from "@tiptap/extension-text";
 import Underline from "@tiptap/extension-underline";
 import { UndoRedo } from "@tiptap/extensions";
 import { managedImageAttributes, managedImageView } from "./image_view";
+import { DocumentWithFields, fieldNode } from "./field_node";
 
 const alignments = ["left", "center", "right", "justify"];
 const fonts = ["Arial", "Calibri", "Georgia", "Segoe UI", "Times New Roman", "Verdana", "Courier New"];
@@ -146,8 +146,8 @@ function managedImage(sessionId: string) {
 
 export function editorExtensions(sessionId: string) {
   return [
-    Document, Paragraph, Text, Heading.configure({ levels: [1, 2, 3] }), Bold, Italic, Underline,
+    DocumentWithFields, Paragraph, Text, Heading.configure({ levels: [1, 2, 3] }), Bold, Italic, Underline,
     BulletList, OrderedList, ListItem, ListKeymap, UndoRedo, ParagraphProperties, TextProperties,
-    EditableTable, TableRow, TableCell, TableHeader, managedImage(sessionId),
+    EditableTable, TableRow, TableCell, TableHeader, managedImage(sessionId), fieldNode(sessionId),
   ];
 }

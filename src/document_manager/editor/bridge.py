@@ -14,7 +14,9 @@ from document_manager.editor.schema import (
 )
 from document_manager.editor.visual_schema import (
     AssetId,
+    FieldDocument,
     PageSettings,
+    VersionThree,
     VersionTwo,
     VisualDocument,
     blank_visual_document,
@@ -28,7 +30,7 @@ SessionId = Annotated[str, Field(pattern="^[0-9a-f]{32}$")]
 class OpenRequest(StrictModel):
     method: Literal["open"]
     protocol_version: VersionOne
-    schema_version: VersionOne | VersionTwo = 1
+    schema_version: VersionOne | VersionTwo | VersionThree = 1
 
 
 class SessionRequest(StrictModel):
@@ -39,7 +41,7 @@ class SessionRequest(StrictModel):
 
 class VerifyRequest(SessionRequest):
     method: Literal["verify_document"]
-    document: EditorDocument | VisualDocument
+    document: EditorDocument | VisualDocument | FieldDocument
 
 
 class ImportImageRequest(SessionRequest):
@@ -54,7 +56,7 @@ class DocumentResponse(StrictModel):
     protocol_version: VersionOne
     company_id: CompanyId
     session_id: SessionId
-    document: EditorDocument | VisualDocument
+    document: EditorDocument | VisualDocument | FieldDocument
 
 
 class ImageResponse(StrictModel):
@@ -112,7 +114,10 @@ class EditorSession:
             if self._schema_version not in (None, request.schema_version):
                 return error_response("session_mismatch")
             self._schema_version = request.schema_version
-            document = blank_document() if self._schema_version == 1 else blank_visual_document(self._page_settings)
+            document = (
+                blank_document() if self._schema_version == 1
+                else blank_visual_document(self._page_settings, self._schema_version)
+            )
         else:
             if self._schema_version is None or request.company_id != self._company_id or request.session_id != self._session_id:
                 return error_response("session_mismatch")
@@ -128,7 +133,7 @@ class EditorSession:
         )
 
     def _import_image(self) -> ImageResponse | ErrorResponse:
-        if self._schema_version != 2:
+        if self._schema_version not in (2, 3):
             return error_response("invalid_request")
         if self._choose_image is None or self._expose_image is None or self._importing:
             return error_response("image_unavailable")

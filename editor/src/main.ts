@@ -2,6 +2,8 @@ import { Editor } from "@tiptap/core";
 import { PageCanvas } from "./canvas";
 import { bindControls, element } from "./controls";
 import { editorExtensions } from "./extensions";
+import { bindFields } from "./field_controls";
+import { definitions } from "./field_node";
 import { type EditorRequest, type EditorResponse, parseResponse, parseVisualDocument } from "./protocol";
 import "./editor.css";
 
@@ -61,8 +63,8 @@ function canonical(value: unknown): string {
 
 async function start(): Promise<void> {
   const bridge = await connect();
-  const session = await request(bridge, { method: "open", protocol_version: 1, schema_version: 2 });
-  if (!session.ok || !("document" in session) || session.document.schema_version !== 2) {
+  const session = await request(bridge, { method: "open", protocol_version: 1, schema_version: 3 });
+  if (!session.ok || !("document" in session) || session.document.schema_version !== 3) {
     throw new Error("Editor session unavailable");
   }
   const binding = { company_id: session.company_id, session_id: session.session_id, protocol_version: 1 } as const;
@@ -71,7 +73,7 @@ async function start(): Promise<void> {
   const editor = new Editor({
     element: editorElement,
     extensions: editorExtensions(session.session_id),
-    content: session.document.document,
+    content: { ...session.document.document, attrs: { fields: session.document.fields } },
     enableContentCheck: true,
     injectCSS: false,
     editorProps: { attributes: { "aria-label": "Document text", role: "textbox", "aria-multiline": "true" } },
@@ -97,10 +99,14 @@ async function start(): Promise<void> {
       importing = false;
     }
   }, report);
+  bindFields(editor);
   const currentDocument = () => {
-    const document = editor.getJSON();
-    editor.schema.nodeFromJSON(document).check();
-    return parseVisualDocument({ schema_version: 2, document, page_settings: settings() });
+    const content = editor.getJSON();
+    editor.schema.nodeFromJSON(content).check();
+    const { attrs, ...document } = content;
+    const parsed = parseVisualDocument({ schema_version: 3, fields: definitions(editor), document, page_settings: settings() });
+    if (parsed.schema_version !== 3) throw new Error("Unsupported document schema");
+    return parsed;
   };
   statusElement.textContent = "Editor ready";
   verifyButton.disabled = false;

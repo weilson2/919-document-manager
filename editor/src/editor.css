@@ -70,7 +70,29 @@ button[aria-pressed="true"] { background: #e1eeff; color: #173e69; border-color:
 }
 
 .preview-mode .editor-layout { grid-template-columns: minmax(104px, 15%) minmax(0, 1fr); }
-.preview-mode :is(#edit-tools, #insert-tools, .properties) { display: none; }
+.preview-mode :is(#edit-tools, #insert-tools, #field-tools, .properties) { display: none; }
+
+#field-library { width: 100%; margin-bottom: 4px; }
+#field-type-values textarea {
+  width: 100%; min-height: 55px; resize: vertical; font: inherit;
+  border: 1px solid #a9bbcf; border-radius: 5px;
+}
+.properties .field-required { grid-template-columns: 1fr auto; align-items: center; }
+#field-required { width: auto; min-height: 0; }
+.field-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+#field-message { color: #435973; overflow-wrap: anywhere; margin: 6px 0 0; }
+#field-message:empty { display: none; }
+.document-field {
+  display: inline;
+  padding: 0 0.3em;
+  border-radius: 3px;
+  background: #e1eeff;
+  color: #173e69;
+  box-decoration-break: clone;
+  cursor: pointer;
+}
+.document-field.ProseMirror-selectednode { outline: 1px solid #245589; }
+.preview-page .document-field { outline: none; }
 
 .left-panel, .properties { overflow: auto; background: #fcfdff; padding: 12px 9px; }
 .left-panel { border-right: 1px solid var(--border); }

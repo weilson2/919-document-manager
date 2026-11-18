@@ -1,7 +1,9 @@
 {
   "name": "document-manager-editor",
   "private": true,
+  "type": "module",
   "scripts": {
+    "test": "node --test test/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && node build.mjs",
     "check:bundle": "npm run typecheck && node build.mjs --check"

@@ -2,10 +2,12 @@ from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field, JsonValue, model_validator
 
+from document_manager.editor.fields import FieldDefinition, FieldReference
 from document_manager.editor.schema import StrictModel
 from document_manager.services.settings import DocumentSettings
 
 VersionTwo = Annotated[int, Field(strict=True, ge=2, le=2)]
+VersionThree = Annotated[int, Field(strict=True, ge=3, le=3)]
 AssetId = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 FontFamily = Literal["Arial", "Calibri", "Georgia", "Segoe UI", "Times New Roman", "Verdana", "Courier New"]
 
@@ -70,9 +72,10 @@ BLOCKS = frozenset({"paragraph", "heading", "bulletList", "orderedList", "table"
 NODE_ATTRS = {
     "paragraph": ParagraphStyle, "heading": HeadingStyle, "orderedList": OrderedStyle,
     "table": TableStyle, "tableCell": CellStyle, "tableHeader": CellStyle, "image": ImageStyle,
+    "field": FieldReference,
 }
 NODE_CHILDREN = {
-    "doc": BLOCKS, "paragraph": {"text"}, "heading": {"text"}, "bulletList": {"listItem"},
+    "doc": BLOCKS, "paragraph": {"text", "field"}, "heading": {"text", "field"}, "bulletList": {"listItem"},
     "orderedList": {"listItem"}, "listItem": BLOCKS, "table": {"tableRow"},
     "tableRow": {"tableCell", "tableHeader"}, "tableCell": BLOCKS, "tableHeader": BLOCKS,
 }
@@ -82,7 +85,7 @@ REQUIRED_CONTENT = frozenset({
 
 
 class VisualNode(StrictModel):
-    type: Literal["doc", "text", "listItem", "tableRow", "tableCell", "tableHeader"] | Block
+    type: Literal["doc", "text", "field", "listItem", "tableRow", "tableCell", "tableHeader"] | Block
     attrs: dict[str, JsonValue] = Field(default_factory=dict)
     content: list["VisualNode"] = Field(default_factory=list, max_length=2500)
     text: Annotated[str, Field(min_length=1, max_length=65_536)] | None = None
@@ -95,11 +98,16 @@ class VisualNode(StrictModel):
             attributes.model_validate(self.attrs)
         elif self.attrs:
             raise ValueError("Unexpected node attributes.")
+        if len({mark.type for mark in self.marks}) != len(self.marks):
+            raise ValueError("Duplicate inline mark.")
         if self.type == "text":
-            if self.text is None or self.content or len({mark.type for mark in self.marks}) != len(self.marks):
+            if self.text is None or self.content:
                 raise ValueError("Invalid text node.")
+        elif self.type == "field":
+            if self.model_fields_set - {"type", "attrs", "marks"}:
+                raise ValueError("A field reference cannot contain text or child nodes.")
         elif "text" in self.model_fields_set or "marks" in self.model_fields_set:
-            raise ValueError("Only text nodes may contain text or marks.")
+            raise ValueError("Only inline nodes may contain text or marks.")
         children = NODE_CHILDREN.get(self.type, set())
         if any(child.type not in children for child in self.content):
             raise ValueError("Unexpected child node.")
@@ -126,6 +134,8 @@ class VisualDocument(StrictModel):
             count += 1
             if depth > 24 or count > 8000:
                 raise ValueError("The document is too complex.")
+            if self.schema_version == 2 and node.type == "field":
+                raise ValueError("Fields require schema version 3.")
             stack.extend((child, depth + 1) for child in node.content)
         return self
 
@@ -140,9 +150,30 @@ class VisualDocument(StrictModel):
         return image_ids
 
 
-def blank_visual_document(settings: PageSettings) -> VisualDocument:
+class FieldDocument(VisualDocument):
+    schema_version: VersionThree
+    fields: Annotated[list[FieldDefinition], Field(max_length=200)]
+
+    @model_validator(mode="after")
+    def validate_references(self):
+        ids = {field.id for field in self.fields}
+        if len(ids) != len(self.fields) or len({field.key for field in self.fields}) != len(self.fields):
+            raise ValueError("Duplicate field ID or key.")
+        stack = [self.document]
+        while stack:
+            node = stack.pop()
+            if node.type == "field" and node.attrs["fieldId"] not in ids:
+                raise ValueError("Missing field definition.")
+            stack.extend(node.content)
+        return self
+
+
+def blank_visual_document(settings: PageSettings, version: int = 2) -> VisualDocument:
+    document = VisualNode(type="doc", content=[VisualNode(type="paragraph")])
+    if version == 3:
+        return FieldDocument(schema_version=3, document=document, page_settings=settings, fields=[])
     return VisualDocument(
         schema_version=2,
-        document=VisualNode(type="doc", content=[VisualNode(type="paragraph")]),
+        document=document,
         page_settings=settings,
     )

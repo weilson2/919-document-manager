@@ -251,6 +251,85 @@ def assert_image_blocked(page, src):
     wait_for(page, "document.body.dataset.imageResult", "blocked")
 
 
+def exercise_fields(page, status, responses):
+    chips = "document.querySelectorAll('#editor .document-field').length"
+    library = "document.getElementById('field-library').options.length"
+    message = "document.getElementById('field-message').textContent"
+    submit = "#field-form button[type=submit]"
+    click(page, "#new-field")
+    control(page, "#field-key", "tenant_name")
+    control(page, "#field-label", "承租人 · Tenant")
+    control(page, "#field-type", "currency")
+    control(page, "#field-default", "120.005")
+    click(page, submit)
+    wait_for(page, f"{message}.includes('2 decimal places')", True)
+    control(page, "#field-default", "120.50")
+    control(page, "#field-format", "symbol")
+    click(page, submit)
+    wait_for(page, library, 2)
+    click(page, '[data-command="undo"]')
+    wait_for(page, library, 1)
+    click(page, '[data-command="redo"]')
+    wait_for(page, library, 2)
+
+    field_id = evaluate(page, "document.getElementById('field-library').options[1].value")
+    control(page, "#field-library", field_id)
+    select_text(page, ".tiptap h2")
+    click(page, "#insert-field")
+    click(page, "#insert-field")
+    wait_for(page, chips, 2)
+    click(page, '[data-command="undo"]')
+    wait_for(page, chips, 1)
+    click(page, '[data-command="redo"]')
+    wait_for(page, chips, 2)
+
+    click(page, "#editor .document-field")
+    control(page, "#field-key", "rent_amount")
+    control(page, "#field-label", "月租 · Rent")
+    click(page, submit)
+    labels = "JSON.stringify([...document.querySelectorAll('#editor .document-field')].map(node=>node.textContent))"
+    wait_for(page, labels, json.dumps(["月租 · Rent", "月租 · Rent"], ensure_ascii=False, separators=(",", ":")))
+    click(page, '[data-command="undo"]')
+    wait_for(page, labels, json.dumps(["承租人 · Tenant", "承租人 · Tenant"], ensure_ascii=False, separators=(",", ":")))
+    click(page, '[data-command="redo"]')
+    wait_for(page, labels, json.dumps(["月租 · Rent", "月租 · Rent"], ensure_ascii=False, separators=(",", ":")))
+    select_text(page, ".tiptap h2", select_all=True)
+    click(page, '[data-command="bold"]')
+    click(page, "#editor .document-field")
+    click(page, "#delete-field")
+    wait_for(page, f"{message}.includes('Remove all references')", True)
+    click(page, "#new-field")
+    control(page, "#field-key", "rent_amount")
+    control(page, "#field-label", "Duplicate")
+    click(page, submit)
+    wait_for(page, f"{message}.includes('unique')", True)
+    click(page, "#verify-document")
+    wait_for(page, status, "Document structure verified")
+    data = responses[-1][1].document.model_dump(exclude_unset=True)
+    assert data["fields"][0]["id"] == field_id
+    assert data["fields"][0]["key"] == "rent_amount"
+    assert data["fields"][0]["default"] == "120.50"
+    assert sum(node.get("attrs", {}).get("fieldId") == field_id for node in data["document"]["content"][0]["content"]) == 2
+
+    # Deleting document nodes keeps their reusable definition and history restores the reference.
+    click(page, "#editor .document-field")
+    evaluate(page, """document.querySelector('.tiptap').dispatchEvent(
+        new KeyboardEvent('keydown', {key: 'Backspace', bubbles: true, cancelable: true}))""")
+    wait_for(page, chips, 1)
+    wait_for(page, library, 2)
+    click(page, '[data-command="undo"]')
+    wait_for(page, chips, 2)
+    click(page, "#new-field")
+    control(page, "#field-key", "unused")
+    control(page, "#field-label", "Unused")
+    click(page, submit)
+    wait_for(page, library, 3)
+    click(page, "#delete-field")
+    wait_for(page, library, 2)
+    click(page, '[data-command="undo"]')
+    wait_for(page, library, 3)
+
+
 def main(workspace: Path) -> None:
     register_editor_scheme()
     app = QApplication([])
@@ -294,7 +373,7 @@ def main(workspace: Path) -> None:
             assert responses[-1][0] == "verify_document"
             verified = responses[-1][1]
             assert isinstance(verified, DocumentResponse)
-            assert verified.document.schema_version == 2
+            assert verified.document.schema_version == 3
             assert [(node.type, [child.text for child in node.content]) for node in verified.document.document.content] == [
                 ("paragraph", [lines[0]]), ("paragraph", []), ("paragraph", [lines[2]]),
             ]
@@ -311,6 +390,7 @@ def main(workspace: Path) -> None:
             exercise_visual_tools(page, status, responses)
             image_url = exercise_images(page, status, workspace, host._view)
             assert_image_blocked(page, "https://outside.invalid/logo.png")
+            exercise_fields(page, status, responses)
             window.company_selector.setCurrentIndex(window.company_selector.findData(other))
             new_page = host._page
             assert new_page is not page
@@ -319,6 +399,7 @@ def main(workspace: Path) -> None:
             fresh = responses[-1][1]
             assert fresh.company_id == other and fresh.session_id != verified.session_id
             assert evaluate(new_page, "document.querySelector('.tiptap').textContent") == ""
+            assert evaluate(new_page, "document.getElementById('field-library').options.length") == 1
             assert_image_blocked(new_page, image_url)
     finally:
         window.close()

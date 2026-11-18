@@ -1,6 +1,6 @@
 # 919 Document Manager
 
-Offline-first Windows desktop software for Malaysian SME document administration. M2.2 adds visual editing and page preview to the company profiles, tenant and employee registers, and template tools delivered in M1.
+Offline-first Windows desktop software for Malaysian SME document administration. M2.3 adds configurable dynamic fields to the visual editor.
 
 ## Run on Windows
 
@@ -53,7 +53,24 @@ The editor uses bundled Tiptap 3 and ProseMirror in an off-the-record Qt WebEngi
 
 To resize a photo, select it and drag the handle in its bottom-right corner, or enter an exact width in the **Image** panel. Width is a percentage of the text area. The photo keeps its aspect ratio.
 
-The editor session is temporary. Switching companies or closing the app clears the document. Imported image files remain in the workspace. Dynamic fields, saving drafts, publishing, and final export are later milestones.
+The editor session is temporary. Switching companies or closing the app clears the document and its field definitions. Imported image files remain in the workspace.
+
+### Dynamic fields
+
+Choose **New field** in the left panel, fill in **Field properties**, and select **Save field**. Select the definition in the field list and use **Insert field** at each location. Click an inline field to edit the shared definition. A key can be renamed without changing its references. Delete a referenced field by first removing all its inline occurrences, then selecting **Delete field**. Use **Undo** or **Redo** for changes to definitions and document references.
+
+Keys begin with a lowercase letter and can contain lowercase letters, digits, and underscores. Labels support Unicode. Defaults and options are validated for the selected field type:
+
+| Field types | Validation rules and display options |
+| --- | --- |
+| Text, Multiline Text, Phone, Email, Address | Optional character limits and uppercase or lowercase display metadata |
+| Number | Decimal defaults and optional bounds with up to six fractional digits, plus a display precision setting |
+| Currency (MYR) | Decimal defaults and optional bounds with up to two fractional digits, with RM or MYR display metadata |
+| Date, Date Range | Valid dates in `YYYY-MM-DD`, optional date bounds, and date display metadata |
+| Dropdown | Distinct choices, one per line, with an optional default from that list |
+| Checkbox, Boolean | Optional true or false default and a display style |
+
+**Verify document** validates the version 3 document envelope, including the separate field definitions and every inline reference. Versions 1 and 2 remain supported by the bridge. The formatting and validation rules are stored with the field definition for later use.
 
 ## Project layout
 
@@ -98,6 +115,7 @@ Rebuild the checked-in JavaScript, CSS, and dependency notices after changing th
 
 ```powershell
 npm.cmd --prefix editor ci --ignore-scripts
+npm.cmd --prefix editor test
 npm.cmd --prefix editor run build
 npm.cmd --prefix editor run check:bundle
 ```
@@ -106,4 +124,4 @@ The npm install may require registry access. Runtime startup and Python package 
 
 Schema changes require an Alembic revision under `src/document_manager/persistence/migrations/versions`. The `migration_config` context manager supplies Alembic with a connection to an explicitly selected database. Use a disposable development database for revision generation or downgrade checks.
 
-See [PROGRESS.md](PROGRESS.md) for the M2.2 Windows acceptance checklist and current limitations.
+See [PROGRESS.md](PROGRESS.md) for the M2.3 Windows acceptance checklist.

@@ -1,4 +1,5 @@
 import type { JSONContent } from "@tiptap/core";
+import { type FieldDefinition, fieldIdPattern, parseFields } from "./field_schema";
 
 export type TextNode = { type: "text"; text: string };
 export type Paragraph = { type: "paragraph"; content?: [TextNode] };
@@ -14,20 +15,21 @@ export type PageSettings = Record<Margin, number> & {
   orientation: "portrait" | "landscape";
 };
 export type VisualDocument = { schema_version: 2; document: JSONContent; page_settings: PageSettings };
+export type FieldDocument = Omit<VisualDocument, "schema_version"> & { schema_version: 3; fields: FieldDefinition[] };
 export type SessionBinding = { company_id: number; session_id: string };
 export type EditorRequest =
-  | { method: "open"; protocol_version: 1; schema_version: 2 }
+  | { method: "open"; protocol_version: 1; schema_version: 3 }
   | (SessionBinding & {
       method: "verify_document";
       protocol_version: 1;
-      document: VisualDocument;
+      document: FieldDocument;
     })
   | (SessionBinding & { method: "import_image"; protocol_version: 1 });
 
 const errors = ["invalid_request", "session_mismatch", "session_closed", "image_cancelled", "invalid_image", "image_unavailable"] as const;
 type ErrorCode = (typeof errors)[number];
 export type EditorResponse =
-  | (SessionBinding & { ok: true; protocol_version: 1; document: EditorDocument | VisualDocument })
+  | (SessionBinding & { ok: true; protocol_version: 1; document: EditorDocument | VisualDocument | FieldDocument })
   | (SessionBinding & { ok: true; protocol_version: 1; asset_id: string })
   | { ok: false; protocol_version: 1; error: ErrorCode };
 
@@ -92,22 +94,39 @@ const visualNodes = new Set([
 const visualMarks = new Set(["bold", "italic", "underline", "textStyle"]);
 const nodeKeys = new Set(["type", "content", "text", "attrs", "marks"]);
 
-export function parseVisualDocument(value: unknown): VisualDocument {
+export function parseVisualDocument(value: unknown): VisualDocument | FieldDocument {
   const envelope = record(value);
-  if (!keysMatch(envelope, ["schema_version", "document", "page_settings"]) || envelope.schema_version !== 2
+  const version = envelope.schema_version;
+  const keys = ["schema_version", "document", "page_settings"];
+  if (version === 3) keys.push("fields");
+  if (!keysMatch(envelope, keys) || (version !== 2 && version !== 3)
       || record(envelope.document).type !== "doc") {
     throw new Error("Unsupported document schema");
   }
+  const fields = version === 3 ? parseFields(envelope.fields) : [];
+  const fieldIds = new Set(fields.map(({ id }) => id));
   let count = 0;
-  function walk(value: unknown, depth: number): void {
+  function walk(value: unknown, depth: number, parent?: unknown): void {
     const node = record(value);
+    const isField = version === 3 && node.type === "field";
     if (depth > 24 || ++count > 8000 || Object.keys(node).some((key) => !nodeKeys.has(key))
-        || typeof node.type !== "string" || !visualNodes.has(node.type)) {
+        || typeof node.type !== "string" || (!visualNodes.has(node.type) && !isField)) {
       throw new Error("Invalid document node");
     }
     if (node.attrs !== undefined) record(node.attrs);
+    if (isField) {
+      const attrs = record(node.attrs);
+      const keys = Object.hasOwn(node, "marks") ? ["type", "attrs", "marks"] : ["type", "attrs"];
+      if ((parent !== "paragraph" && parent !== "heading") || !keysMatch(node, keys)
+          || !keysMatch(attrs, ["fieldId"]) || typeof attrs.fieldId !== "string"
+          || !fieldIdPattern.test(attrs.fieldId) || !fieldIds.has(attrs.fieldId)) {
+        throw new Error("Invalid or missing field reference.");
+      }
+    }
     if (node.type === "text") {
       if (typeof node.text !== "string" || !node.text || node.content !== undefined) throw new Error("Invalid text");
+    }
+    if (node.type === "text" || isField) {
       if (node.marks !== undefined && (!Array.isArray(node.marks) || node.marks.some((value) => {
         const mark = record(value);
         return Object.keys(mark).some((key) => key !== "type" && key !== "attrs")
@@ -118,13 +137,12 @@ export function parseVisualDocument(value: unknown): VisualDocument {
     }
     if (node.content !== undefined) {
       if (!Array.isArray(node.content)) throw new Error("Invalid node content");
-      for (const child of node.content) walk(child, depth + 1);
+      for (const child of node.content) walk(child, depth + 1, node.type);
     }
   }
   walk(envelope.document, 0);
-  return {
-    schema_version: 2, document: envelope.document as JSONContent, page_settings: parsePageSettings(envelope.page_settings),
-  };
+  const base = { document: envelope.document as JSONContent, page_settings: parsePageSettings(envelope.page_settings) };
+  return version === 3 ? { ...base, schema_version: 3, fields } : { ...base, schema_version: 2 };
 }
 
 export function parseResponse(raw: unknown): EditorResponse {
@@ -146,7 +164,7 @@ export function parseResponse(raw: unknown): EditorResponse {
     }
     if (keysMatch(response, [...shared, "document"])) {
       const document = record(response.document);
-      return { ...binding, document: document.schema_version === 2 ? parseVisualDocument(document) : parseLegacyDocument(document) };
+      return { ...binding, document: document.schema_version === 1 ? parseLegacyDocument(document) : parseVisualDocument(document) };
     }
   }
   throw new Error("Invalid response");

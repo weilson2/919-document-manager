@@ -53,6 +53,13 @@
             <button type="button" data-command="table">Table</button>
             <button type="button" data-command="image">Image</button>
           </fieldset>
+          <section id="field-tools" hidden>
+            <h2>Fields</h2>
+            <button id="new-field" type="button">New field</button>
+            <label class="sr-only" for="field-library">Document fields</label>
+            <select id="field-library"></select>
+            <button id="insert-field" type="button" disabled>Insert field</button>
+          </section>
           <section><h2>Pages</h2><nav id="page-nav" aria-label="Pages"></nav></section>
         </aside>
         <section id="canvas" class="canvas" aria-label="Document canvas">
@@ -69,6 +76,21 @@
         <aside class="properties" aria-label="Document properties">
           <fieldset id="properties" disabled>
             <legend class="sr-only">Document properties</legend>
+            <section id="field-properties" hidden>
+              <h2>Field properties</h2>
+              <form id="field-form">
+                <label>Field key <input id="field-key" required maxlength="64" placeholder="tenant_name"></label>
+                <label>Label <input id="field-label" required maxlength="120"></label>
+                <label>Type <select id="field-type"></select></label>
+                <label class="field-required">Required <input id="field-required" type="checkbox"></label>
+                <div id="field-type-values"></div>
+                <div class="field-actions">
+                  <button type="submit">Save field</button>
+                  <button id="delete-field" type="button">Delete field</button>
+                </div>
+                <p id="field-message" role="status"></p>
+              </form>
+            </section>
             <section id="image-properties" hidden><h2>Image</h2>
               <label>Width (% of text area) <input id="image-width" type="number" min="10" max="100"></label>
               <label>Description <input id="image-alt" maxlength="300" type="text"></label>

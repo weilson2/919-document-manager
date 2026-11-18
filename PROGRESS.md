@@ -166,5 +166,28 @@ The user reported **Overall PASS**, with all nine checks passing.
 - Undo/redo applies to document content and formatting. Page setup is adjusted separately. Documents remain temporary, and imported asset files remain in the company workspace.
 - Dynamic fields, draft persistence, publishing, and final PDF export are future milestones.
 
-M2.3 is pending implementation approval.
+## M2.3 · Dynamic Fields
+
+**Status:** Awaiting Windows 11 manual acceptance.
+
+- Added the field library, inline references, and a properties form for the twelve field types.
+- Version 3 stores definitions in a separate field registry and uses stable IDs on inline nodes. Versions 1 and 2 remain available through the bridge. Unsupported versions, unsupported rules, duplicate keys, and missing references are rejected.
+- The ProseMirror history covers field creation, edits, insertion, and deletion. A definition can be deleted when it has no document references.
+- Fields and document edits belong to the temporary company session. The required flag, validation, defaults, and formatting are definition metadata for later form generation.
+
+### Verification completed
+
+- The Windows 11 automated suite passed 92 Python tests, including the M0–M2.2 regressions and native Qt renderer coverage of creation, insertion, reuse, formatting, rename, deletion, undo/redo, and company switching.
+- The offline test opened the installed wheel in Qt WebEngine with Node/npm removed from PATH and external networking disabled for the browser probe.
+- Three TypeScript validation tests passed. Type checking, bundle reproducibility, Python lint and dependency checks, and the source distribution and wheel builds passed.
+
+### Windows 11 manual acceptance
+
+1. Open a separate workspace with `.\.venv\Scripts\python.exe -m document_manager --data-dir "$env:TEMP\919-document-manager-m23"`, then open **Document Editor**.
+2. Choose **New field**, enter the key `rent_amount` and label `月租 · Rent`, select **Currency (MYR)**, and set the default to `120.005`. Verify Save rejects it. Change it to `120.50`, select an RM display format, and save.
+3. Insert the field twice. Click one occurrence, rename its key and label, and save. Check that both labels update and that Undo and Redo restore both. Try saving a second definition with the same key, and try deleting the referenced definition. Both should be rejected.
+4. Remove the two inline references, then delete the definition and undo that deletion. Select **Verify document** and expect **Document structure verified**.
+5. Disconnect from the network, reopen the separate workspace, and repeat a field insertion. Switch companies to confirm the new session opens with an empty field list.
+
+M2.4 is pending acceptance of M2.3 and implementation approval.
 
