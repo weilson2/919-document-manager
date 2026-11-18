@@ -2,7 +2,7 @@
 
 ## M0 · Project Foundation
 
-**Status:** Awaiting acceptance.
+**Status:** ACCEPTED on 18 November 2026.
 
 The workspace already contained an independent POS application, its database, and backups. The Document Manager lives in a new sibling directory with its own Git history and local data location.
 
@@ -23,7 +23,7 @@ The workspace already contained an independent POS application, its database, an
 - Windows 11 x64, Python 3.12.14, SQLite 3.53.1, and PySide6 6.12.0. Qt WebEngine and Qt WebChannel imports succeeded.
 - All nine tests passed, covering migrations, settings persistence and validation, the ten navigation destinations, and startup failure handling.
 - Dependency and lint checks passed. The source distribution and wheel built successfully. The development launcher and the installed wheel each initialized a separate test workspace.
-- Dashboard and Company Settings were visually inspected using offscreen Qt rendering with Windows Segoe UI. Interactive desktop acceptance on Windows 10 and 11 is pending.
+- Dashboard and Company Settings were visually inspected using offscreen Qt rendering with Windows Segoe UI. The user confirmed interactive Windows 11 acceptance for base commit `8071d77`.
 
 ### Major technical risks
 
@@ -48,4 +48,3 @@ The workspace already contained an independent POS application, its database, an
 - Multiple company records are supported by the schema. Company creation and profile switching are scheduled for M1.
 - Authentication, roles, audit history, encrypted backups, and the Windows installer are later work. The development workspace is for evaluation with sample data.
 
-M1 is pending M0 acceptance.
