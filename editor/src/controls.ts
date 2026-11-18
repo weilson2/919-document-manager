@@ -2,6 +2,7 @@ import type { Editor } from "@tiptap/core";
 import { NodeSelection } from "@tiptap/pm/state";
 import type { PageCanvas } from "./canvas";
 import { updateImageAttributes } from "./image_view";
+import { definitions } from "./field_node";
 import { type PageSettings, margins, parsePageSettings } from "./protocol";
 
 export function element<T extends HTMLElement>(id: string): T {
@@ -13,7 +14,7 @@ type Command = () => void | boolean | Promise<void>;
 
 export function bindControls(
   editor: Editor, canvas: PageCanvas, initialSettings: PageSettings,
-  importImage: () => Promise<void>, report: (text: string) => void,
+  importImage: () => Promise<void>, report: (text: string) => void, settingsChanged: () => void = () => {},
 ) {
   const editTools = element<HTMLFieldSetElement>("edit-tools");
   const insert = element<HTMLFieldSetElement>("insert-tools");
@@ -21,6 +22,7 @@ export function bindControls(
   const preview = element<HTMLButtonElement>("preview-toggle");
   const zoom = element<HTMLSelectElement>("zoom");
   const outline = element("outline");
+  const visibility = element<HTMLSelectElement>("show-when-field");
   let pageSettings = initialSettings;
   const chain = () => editor.chain().focus();
 
@@ -35,11 +37,22 @@ export function bindControls(
     heading: () => chain().setHeading({ level: 1 }).run(),
     table: () => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
     image: importImage,
+    "page-break": () => chain().command(({ tr, dispatch, state }) => {
+      const end = tr.selection.$to;
+      const after = end.depth ? end.after(1) : end.pos;
+      if (dispatch) {
+        tr.insert(after, state.schema.nodes.pageBreak.create());
+        if (tr.doc.content.size === after + 1) tr.insert(after + 1, state.schema.nodes.paragraph.create());
+      }
+      return true;
+    }).run(),
     "add-row": () => chain().addRowAfter().run(),
     "delete-row": () => chain().deleteRow().run(),
     "add-column": () => chain().addColumnAfter().run(),
     "delete-column": () => chain().deleteColumn().run(),
     "header-row": () => chain().toggleHeaderRow().run(),
+    "merge-cells": () => chain().mergeCells().run(),
+    "split-cell": () => chain().splitCell().run(),
     "delete-table": () => chain().deleteTable().run(),
     "delete-image": () => chain().deleteSelection().run(),
   };
@@ -70,6 +83,7 @@ export function bindControls(
   onChange("space-after", (control) => {
     if (control.checkValidity()) setParagraph({ spaceAfter: control.value === "" ? null : Number(control.value) });
   });
+  onChange("show-when-field", ({ value }) => setParagraph({ showWhenFieldId: value || null }));
   onChange("font-family", ({ value }) => chain().setMark("textStyle", { fontFamily: value || null }).run());
   onChange("font-size", ({ value }) => chain().setMark("textStyle", { fontSize: value ? Number(value) : null }).run());
   onChange("text-color", ({ value }) => chain().setMark("textStyle", { color: value }).run());
@@ -87,6 +101,7 @@ export function bindControls(
     try {
       pageSettings = parsePageSettings({ ...pageSettings, ...update });
       canvas.setPageSettings(pageSettings);
+      settingsChanged();
       report("Ready to verify");
     } catch {
       report("Choose a margin between 0 and 60 mm.");
@@ -127,6 +142,8 @@ export function bindControls(
       if (action in activeMarks) button.setAttribute("aria-pressed", String(editor.isActive(activeMarks[action as keyof typeof activeMarks])));
       if (action === "undo") button.disabled = !editor.can().undo();
       if (action === "redo") button.disabled = !editor.can().redo();
+      if (action === "merge-cells") button.disabled = !editor.can().mergeCells();
+      if (action === "split-cell") button.disabled = !editor.can().splitCell();
     }
     const setValue = (id: string, value: unknown) => {
       const control = element<Control>(id);
@@ -134,6 +151,9 @@ export function bindControls(
     };
     const heading = editor.isActive("heading");
     const paragraph = editor.getAttributes(heading ? "heading" : "paragraph");
+    visibility.replaceChildren(new Option("Always show", ""), ...definitions(editor)
+      .map((field) => new Option(field.label, field.id)));
+    visibility.value = paragraph.showWhenFieldId ?? "";
     setValue("block-format", heading ? paragraph.level : 0);
     setValue("toolbar-alignment", paragraph.textAlign ?? "left");
     setValue("alignment", paragraph.textAlign ?? "left");

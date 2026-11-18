@@ -2,7 +2,7 @@ from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field, JsonValue, model_validator
 
-from document_manager.editor.fields import FieldDefinition, FieldReference
+from document_manager.editor.fields import FieldDefinition, FieldId, FieldReference
 from document_manager.editor.schema import StrictModel
 from document_manager.services.settings import DocumentSettings
 
@@ -20,6 +20,7 @@ class ParagraphStyle(StrictModel):
     textAlign: Literal["left", "center", "right", "justify"] | None = None
     lineSpacing: Literal["1", "1.15", "1.5", "2"] | None = None
     spaceAfter: Annotated[int, Field(ge=0, le=48)] | None = None
+    showWhenFieldId: FieldId | None = None
 
 
 class HeadingStyle(ParagraphStyle):
@@ -67,7 +68,7 @@ class VisualMark(StrictModel):
         return self
 
 
-Block = Literal["paragraph", "heading", "bulletList", "orderedList", "table", "image"]
+Block = Literal["paragraph", "heading", "bulletList", "orderedList", "table", "image", "pageBreak"]
 BLOCKS = frozenset({"paragraph", "heading", "bulletList", "orderedList", "table", "image"})
 NODE_ATTRS = {
     "paragraph": ParagraphStyle, "heading": HeadingStyle, "orderedList": OrderedStyle,
@@ -75,7 +76,7 @@ NODE_ATTRS = {
     "field": FieldReference,
 }
 NODE_CHILDREN = {
-    "doc": BLOCKS, "paragraph": {"text", "field"}, "heading": {"text", "field"}, "bulletList": {"listItem"},
+    "doc": BLOCKS | {"pageBreak"}, "paragraph": {"text", "field"}, "heading": {"text", "field"}, "bulletList": {"listItem"},
     "orderedList": {"listItem"}, "listItem": BLOCKS, "table": {"tableRow"},
     "tableRow": {"tableCell", "tableHeader"}, "tableCell": BLOCKS, "tableHeader": BLOCKS,
 }
@@ -134,8 +135,8 @@ class VisualDocument(StrictModel):
             count += 1
             if depth > 24 or count > 8000:
                 raise ValueError("The document is too complex.")
-            if self.schema_version == 2 and node.type == "field":
-                raise ValueError("Fields require schema version 3.")
+            if self.schema_version == 2 and (node.type in {"field", "pageBreak"} or node.attrs.get("showWhenFieldId")):
+                raise ValueError("Fields and page breaks require schema version 3.")
             stack.extend((child, depth + 1) for child in node.content)
         return self
 
@@ -150,9 +151,17 @@ class VisualDocument(StrictModel):
         return image_ids
 
 
+class PrintSettings(StrictModel):
+    header: Annotated[str, Field(max_length=160)] = ""
+    footer: Annotated[str, Field(max_length=160)] = ""
+    page_numbers: bool = False
+    company_logo: bool = False
+
+
 class FieldDocument(VisualDocument):
     schema_version: VersionThree
     fields: Annotated[list[FieldDefinition], Field(max_length=200)]
+    print_settings: PrintSettings = Field(default_factory=PrintSettings)
 
     @model_validator(mode="after")
     def validate_references(self):
@@ -164,6 +173,8 @@ class FieldDocument(VisualDocument):
             node = stack.pop()
             if node.type == "field" and node.attrs["fieldId"] not in ids:
                 raise ValueError("Missing field definition.")
+            if node.attrs.get("showWhenFieldId") is not None and node.attrs["showWhenFieldId"] not in ids:
+                raise ValueError("Missing field for a conditional paragraph.")
             stack.extend(node.content)
         return self
 

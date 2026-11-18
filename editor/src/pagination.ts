@@ -17,8 +17,9 @@ export function paperMetrics(settings: PageSettings) {
   return { width, height, top, right, bottom, left, bodyHeight: height - top - bottom };
 }
 
-export function paginate(height: number, bodyHeight: number, breakpoints: number[]): Page[] {
-  const breaks = [...new Set(breakpoints)]
+export function paginate(height: number, bodyHeight: number, breakpoints: number[], forcedBreaks: number[] = []): Page[] {
+  const forced = new Set(forcedBreaks);
+  const breaks = [...new Set([...breakpoints, ...forced])]
     .filter((value) => value > 0 && value < height)
     .sort((a, b) => a - b);
   breaks.push(height);
@@ -27,7 +28,8 @@ export function paginate(height: number, bodyHeight: number, breakpoints: number
   let cursor = 0;
   while (cursor < breaks.length) {
     let chosen = cursor;
-    while (chosen + 1 < breaks.length && breaks[chosen + 1] <= start + bodyHeight + tolerance) chosen += 1;
+    while (!forced.has(breaks[chosen]) && chosen + 1 < breaks.length
+      && breaks[chosen + 1] <= start + bodyHeight + tolerance) chosen += 1;
     const end = breaks[chosen];
     pages.push({ start, end, oversized: end - start > bodyHeight + tolerance });
     start = end;
@@ -116,5 +118,6 @@ export function measureDocument(content: HTMLElement, scale: number, minimumHeig
   // The editable surface reserves one body height even when blank.
   const height = protectedRanges.reduce((extent, range) => Math.max(extent, range.end),
     Math.max(minimumHeight, surface.height / scale, content.scrollHeight));
-  return { height, width: Math.max(content.clientWidth, content.scrollWidth), breaks: safeBreakpoints(breaks, protectedRanges) };
+  return { height, width: Math.max(content.clientWidth, content.scrollWidth), breaks: safeBreakpoints(breaks, protectedRanges),
+    forcedBreaks: [...content.querySelectorAll(":scope > .manual-page-break")].map(bottom) };
 }

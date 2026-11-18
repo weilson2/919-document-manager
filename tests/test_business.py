@@ -208,4 +208,4 @@ def test_template_workflow_keeps_published_metadata_and_categories_isolated(data
     service.set_archived("template", 1, template_id, archived=False)
     assert service.dashboard(1).templates == 3
     assert service.dashboard(second).templates == 0
-    assert service.dashboard(1).documents is None
+    assert service.dashboard(1).documents == 0

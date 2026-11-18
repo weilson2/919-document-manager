@@ -1,127 +1,90 @@
 # 919 Document Manager
 
-Offline-first Windows desktop software for Malaysian SME document administration. M2.3 adds configurable dynamic fields to the visual editor.
+An offline Windows workspace for designing business templates, filling documents from company records, generating PDFs, keeping history, and preparing draft payroll.
 
-## Run on Windows
+## Install and open
 
-Use 64-bit CPython 3.12 on Windows 10 version 1809 or later, or Windows 11. Run these PowerShell commands from the `919_DOCUMENT_MANAGER` directory. If the Python launcher is unavailable, replace `py -3.12` with your Python 3.12 executable.
+Use the x64 MSI from the release build on Windows 10 version 1809 or later, or Windows 11. Open **919 Document Manager** from the Start menu. On the first launch, create the local owner account with a password of at least 12 characters. The app includes the Python and Qt runtimes. It runs offline and uses a locally bundled editor.
+
+For a source checkout, install 64-bit CPython 3.12 and run the following from the project folder. The CMD launcher works from PowerShell with script execution disabled.
 
 ```powershell
 py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.\.venv\Scripts\python.exe -m document_manager
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,packaging]"
+.\Start-DocumentManager.cmd
 ```
 
-Use `--data-dir` to open a separate workspace. Add `--check` to initialize and check storage without opening a window. These commands can run from PowerShell with script execution disabled.
+The live workspace typically resides in `%LOCALAPPDATA%\919 Document Manager`. It contains a SQLite database, a rotating log, and managed template images. Alembic applies migrations in a transaction and preserves earlier profiles and template metadata versions. A new regular workspace opens as **919 RESTAURANT**. Company settings supply registration, address, contact information, logo, and document defaults. Use the sidebar selector to switch companies.
+
+To initialize or check an isolated workspace, use `.\Start-DocumentManager.cmd --check --data-dir "$env:TEMP\919-check"`. For installed copies, use the same arguments with `919DocumentManager.exe`. The application log records startup errors.
+
+## Design, fill, and file documents
+
+1. Open **Templates**. Select a starter or choose **New template**. Ten starter designs are installed per company. The guides and clauses are editable illustrations. Review them for suitability before official use.
+2. Choose **Edit design**. The editor autosaves the draft and checks for conflicting saves. **Save draft** or **Ctrl+S** saves on demand. **Publish design** creates an immutable version. **Versions** shows publication dates and design or field changes.
+3. Select **Create document**. Choose a tenant or employee when a design uses a record binding. You can add a new record from this form, or override a prefilled value for this document. Required fields are marked with an asterisk.
+4. Choose **Preview PDF**, inspect the actual PDF, and select **Save to history**. **Export PDF** writes the saved bytes to the selected location. **Back to form** retains your entries. **Edit design** pauses the form and **Return to filled values** resumes it. If a newer design exists, you can keep the current version or carry matching fields forward.
+5. Open **History** to find a document by number, title, or subject. View and export the original PDF, or use **Reuse values** to start a new document from the original version and inputs. Changing the company, tenant, employee, or template leaves the original PDF and captured data intact. Use the **Archived** filter to restore archived records.
+
+### Editing and field design
+
+The editor supports flowing text, headings, lists, formatting, tables, images, and explicit page breaks. For a table merge, select multiple cells, then use **Merge cells**. Select an image and drag its corner, or set its percentage width in **Image**. PNG and JPEG imports accept up to 8 MB and 4096 × 4096 pixels. Page setup includes A4 or A5, portrait or landscape, margins, repeated plain-text headers and footers, page numbers, and the company logo. Use at least 8 mm of top or bottom margin for the corresponding running text or numbers.
+
+Choose **New field**, enter its key and label, and select **Save field settings**. Place the cursor or select text, then choose **Insert field**. Repeated placements share the same field definition. Define separate fields for independent values, such as rent and deposit. Click a placeholder to edit its field settings. For conditional text, select a paragraph and set **Show paragraph when filled**. Remove inline and conditional references before deleting a field. Undo and Redo work for field definitions and placements.
+
+Fields cover text, multiline text, integer, decimal, MYR currency, date, date range, dropdown, checkbox, boolean, phone, email, address, and tenant, employee, or company references. **Prefill from** selects a supported record property. Fill Mode enforces the field type and configured bounds. Amounts typed directly into a design remain ordinary text.
+
+The sidebar **Document Editor** opens a temporary canvas until you select a template. In Design Mode, **Preview** shows guides for editing placeholders. For resolved content and final page placement, use **Preview PDF** from Fill Mode. The application uses the same PDF bytes for Fill Mode preview, history, and export. Pagination and available glyphs depend on installed Windows fonts. Layout can differ from Microsoft Word.
+
+## Payroll
+
+Open **Payroll**, choose the employee and month, and enter earnings, advances, and authorized deductions. The page loads monthly basic salary. Enter period basic pay explicitly for daily or hourly employees. **Calculate draft** shows gross pay, known deductions, estimated net pay, employer cost, and each contribution's status. Draft manual amounts require a reason and are recorded with each saved revision.
+
+Select **Save draft revision** and **Preview payslip**, then save or export the clearly marked draft PDF. **Load as new revision** lets you correct values while retaining earlier snapshots. Use **Check approval** to verify that the application blocks final approval and names the unavailable rules. The release contains no verified statutory calculation adapters for EPF, SOCSO, EIS, or PCB/MTD. Missing contributions remain unknown, and draft totals exclude them. Official schedules for future verification are available from [KWSP](https://www.kwsp.gov.my/en/epf-act-1991-third-schedule), [PERKESO](https://www.perkeso.gov.my/en/our-services/employer-employee/contributions.html), and [HASiL](https://www.hasil.gov.my/en/majikan/jadual-pcb-dan-spesifikasi-data/).
+
+## Local access and recovery
+
+- Owners can add local owner, payroll officer, and clerk accounts. Owners and payroll officers can access employees, payroll, and employee-linked documents. Owners manage company settings and backups. Restart the program to switch signed-in users.
+- Passwords use salted scrypt hashes. Backup archives use password-derived AES-256-GCM encryption. The live SQLite database, managed images, and PDF files exported outside the app use the protection of the Windows account and filesystem.
+- In **Backup & Restore**, select **Create encrypted backup** and choose a separate password. The app takes a consistent SQLite snapshot and includes referenced template images and saved PDFs. Use **Verify backup file** to check the archive, database, and files. Backups support workspaces up to 256 MB before compression. Keep the password so you can restore the archive.
+- Choose **Restore to a new workspace** to verify and extract a copy into an unused folder. Then choose **Open restored workspace** and sign in with an account from the backup. The current workspace remains available until you close it.
+
+## Windows 11 acceptance
+
+Use a new fictional workspace. The sample command requires an unused directory and seeds a fictional company, two tenants, two employees, an agreement, an offer, a draft payslip, and a published custom template.
 
 ```powershell
-.\.venv\Scripts\python.exe -m document_manager --data-dir "$env:TEMP\919-document-manager-dev"
-.\.venv\Scripts\python.exe -m document_manager --check --data-dir "$env:TEMP\919-document-manager-dev"
+$demo = Join-Path $env:TEMP ("919-demo-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+.\Start-DocumentManager.cmd --sample --data-dir "$demo"
 ```
 
-Initial dependency installation uses PyPI. The installed application runs locally without a server or network connection.
+For the MSI, run the installed `919DocumentManager.exe` with the same arguments. After creating the sample workspace, omit `--sample` when reopening it. See [the four Windows acceptance journeys](PROGRESS.md#integrated-release-windows-11-manual-acceptance).
 
-## Local data and startup
+## Development and packaging
 
-By default, the database and rotating log are stored in Qt's per-user application data directory, typically `%LOCALAPPDATA%\919 Document Manager` on Windows. To inspect the exact database path, run:
+| Component | Responsibility |
+| --- | --- |
+| `src/document_manager/ui/` | PySide6 desktop pages, safe embedded editor, Qt WebEngine printing, and Qt PDF preview |
+| `src/document_manager/editor/` and `editor/` | Pydantic JSON validation, restricted WebChannel, Tiptap 3/ProseMirror, and the checked-in offline assets |
+| `src/document_manager/services/` | Scoped document, template, fill, payroll, access, and backup workflows |
+| `src/document_manager/payroll.py` | Exact Decimal calculations and effective-dated contribution schedule handling |
+| `src/document_manager/persistence/` | SQLAlchemy 2.x repositories, SQLite constraints, and Alembic migrations |
+| `src/document_manager/presets/` | Editable source data for the ten starter designs |
+| `tests/` | pytest, pytest-qt, offline installed-wheel probes, and the four automated Qt journeys |
+
+PySide6 provides the Windows shell and bundled browser and PDF engines. SQLAlchemy and Alembic manage SQLite and explicit migrations. Pydantic validates templates and form input, and `cryptography` handles authenticated backup encryption. The wheel packages the data and assets. PyInstaller bundles the Windows runtime. WiX builds the MSI. Node, TypeScript, and esbuild are development tools for the editor bundle.
 
 ```powershell
-.\.venv\Scripts\python.exe -m document_manager --check
-```
-
-Startup applies the packaged Alembic revisions within a SQLite transaction. A fresh database opens as 919 RESTAURANT. Opening an M0 workspace preserves its company records and default company. Use **Ctrl+1** for the Dashboard and **Ctrl+,** for Company Settings.
-
-On startup failure, the error message identifies the log location when available. An unrecognized, unversioned database is rejected. Use a separate `--data-dir` to diagnose a startup issue while preserving the original workspace.
-
-## Using M1
-
-- **Dashboard** shows non-archived template totals, active tenant and employee counts, recent changes, and shortcuts for creating records. Generated-document totals become available with document generation.
-- **Company Settings** manages identity, contact details, logo, and document defaults for A4 or A5, orientation, and margins. Use **New company** to add a profile, the sidebar to switch companies for this session, and **Make default** to select the company that opens on startup. Logos accept PNG or JPEG files up to 2 MB and 2048 × 2048 pixels. The application stores a normalized PNG in the database.
-- **Tenants** records identification, contact details, stall, rental frequency, MYR rent and deposit, start and end dates, and status. **Employees** records staff and contact details, employment information, basic salary, and optional payroll eligibility attributes. Enter dates as `YYYY-MM-DD` and money with up to two decimal places. Amounts are stored as integer sen and handled as `Decimal` in Python.
-- **Templates** lets you create and assign categories, create and edit template metadata, duplicate it as a draft, and archive it. **Publish metadata** retains an immutable numbered snapshot. Changes to published metadata create a draft while retaining earlier snapshots.
-- **Archive** hides a record from the working list. Open **Archived**, select the record, and use **Restore** to recover it with its previous business status. Identifiers remain reserved while archived. Tenant and employee identification numbers are checked by identification type within the company. Employee numbers, template names, and category names are unique within the company. Company registration numbers are checked across profiles.
-
-Company switching scopes business records and activity within the local workspace. Local sign-in and role-based access are later milestones. M1 captures payroll inputs and template metadata. Rendering, payroll calculations, and backup tooling remain scheduled for later milestones.
-
-## Trying the local editor
-
-Open **Document Editor** in the sidebar and wait for **Editor ready**. Use the toolbar for headings, lists, formatting, tables, and images. The left panel holds the heading outline and page navigation. Select text or an element to adjust its typography, spacing, table, or image properties on the right. The page setup controls start from the active company's defaults.
-
-The editable canvas uses one flowing document with page-break guides. **Preview** displays individual A4 or A5 sheets using the same measured content and margins. Zoom scales the view and preserves logical page breaks. An oversized element can expand a preview sheet and triggers a warning. Preview pagination depends on the installed fonts and Qt WebEngine's layout.
-
-The editor uses bundled Tiptap 3 and ProseMirror in an off-the-record Qt WebEngine profile. **Check structure** confirms that the versioned JSON survives a round trip through the company-bound WebChannel. **Insert image** opens the native Python file picker, accepts PNG and JPEG up to 8 MB and 4096 × 4096 pixels, and writes a PNG copy under `editor-assets/<company-id>/` in the local workspace. Only images authorized for the active editor session can load.
-
-To resize a photo, select it and drag the handle in its bottom-right corner, or enter an exact width in the **Image** panel. Width is a percentage of the text area. The photo keeps its aspect ratio.
-
-The editor session is temporary. Switching companies or closing the app clears the document and its field definitions. Imported image files remain in the workspace.
-
-### Dynamic fields
-
-Choose **New field** in the left panel, fill in **Field properties**, and select **Save field settings**. Place the cursor and click **Insert field** to add a placeholder, or select existing text first to replace it. The **Label on document** appears on the page. The **Field key** identifies the value when filling a document. Each placement of the same field shares its settings. Create a separate field for each independent value, such as basic salary and total deductions. Click an inline field to edit its settings. Delete a referenced field by first removing all its inline occurrences, then selecting **Delete field**. Use **Undo** or **Redo** for changes to definitions and document references.
-
-Keys begin with a lowercase letter and can contain lowercase letters, digits, and underscores. Labels support Unicode. Defaults and options are validated for the selected field type:
-
-| Field types | Validation rules and display options |
-| --- | --- |
-| Text, Multiline Text, Phone, Email, Address | Optional character limits and uppercase or lowercase display metadata |
-| Number | Decimal defaults and optional bounds with up to six fractional digits, plus a display precision setting |
-| Currency (MYR) | Decimal defaults and optional bounds with up to two fractional digits, with RM or MYR display metadata |
-| Date, Date Range | Valid dates in `YYYY-MM-DD`, optional date bounds, and date display metadata |
-| Dropdown | Distinct choices, one per line, with an optional default from that list |
-| Checkbox, Boolean | Optional true or false default and a display style |
-
-**Check structure** validates the version 3 document envelope, including the separate field definitions and every inline reference. Versions 1 and 2 remain supported by the bridge. Defaults and validation rules apply to field values. Amounts typed directly on the page remain ordinary text.
-
-## Project layout
-
-| Location | Responsibility |
-| --- | --- |
-| `src/document_manager/app.py` | Startup, local paths, logging, and application lifetime |
-| `src/document_manager/ui/` | PySide6 shell, dashboard, company and record screens |
-| `src/document_manager/editor/` | Editor document schema, WebChannel bridge, and bundled WebEngine assets |
-| `editor/` | TypeScript editor sources, pinned npm lockfile, and bundle build |
-| `src/document_manager/services/` | Input validation, company settings, and transactional business workflows |
-| `src/document_manager/persistence/` | SQLAlchemy models, company-scoped repositories, SQLite, and packaged Alembic migrations |
-| `tests/` | Automated database, migration, service, startup, and desktop tests |
-
-As later milestones land, `src/document_manager/domain/` will hold document, business-data, and payroll rules. `src/document_manager/rendering/` will own document resolution and export adapters. Windows packaging will live in `packaging/`. Business workflows will call the domain and persistence from the service layer.
-
-## Dependencies
-
-| Dependency | Reason |
-| --- | --- |
-| PySide6 6.12.0 | Qt Widgets desktop shell, with Qt WebEngine for the local editor and Qt WebChannel for its validated bridge. [Qt Windows support](https://doc.qt.io/qt-6.12/windows.html) |
-| SQLAlchemy 2.0.58 and Python SQLite | Typed models, transaction management, and embedded storage. [SQLAlchemy release](https://pypi.org/project/SQLAlchemy/2.0.58/) |
-| Alembic 1.20.1 | Explicit schema revisions and migration/model consistency checks. [Alembic](https://pypi.org/project/alembic/1.20.1/) |
-| Pydantic 2.14.3 | Validates and normalizes company input at the service boundary. [Pydantic](https://pypi.org/project/pydantic/2.14.3/) |
-| pytest 9.2.0 and pytest-qt 4.5.0 | Exercise startup, databases, and actual Qt widget interactions. |
-| setuptools 84.2.1 and build 1.6.1 | Build the source distribution and wheel, including migrations. |
-| Tiptap 3.34.0 and ProseMirror | Schema-driven editing and document JSON. [Tiptap schema](https://tiptap.dev/docs/editor/core-concepts/schema) |
-| Node 24, TypeScript 6.0.3, and esbuild 0.28.2 | Developer tools for type checking and bundling the offline editor. [esbuild bundling](https://esbuild.github.io/api/#bundle) |
-
-## Tests and build
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe -m pip check
-.\.venv\Scripts\python.exe -m build
-```
-
-SQLite tests use temporary workspaces. Desktop tests use Qt's offscreen platform by default. If building offline with the declared build backend already installed, pass `--no-isolation` to `python -m build`.
-
-The WebEngine tests start real Chromium renderers in subprocesses. The wheel test builds and installs the package locally with pip's index disabled, removes Node/npm from the renderer's PATH, and runs with a loopback-only proxy, disabled DNS resolution, and the normal editor request policy. Run these tests in an environment that allows Chromium's renderer process to start.
-
-Rebuild the checked-in JavaScript, CSS, and dependency notices after changing the editor source. From the project directory, run:
-
-```powershell
+.\.venv\Scripts\python.exe -m build --no-isolation
 npm.cmd --prefix editor ci --ignore-scripts
 npm.cmd --prefix editor test
 npm.cmd --prefix editor run build
 npm.cmd --prefix editor run check:bundle
+.\.venv\Scripts\python.exe -m PyInstaller --noconfirm 919DocumentManager.spec
+$bundle = (Resolve-Path .\dist\919DocumentManager).Path
+wix build -arch x64 -bindpath "app=$bundle" -out .\dist\919DocumentManager-x64.msi .\installer\919DocumentManager.wxs
 ```
 
-The npm install may require registry access. Runtime startup and Python package builds use the checked-in bundle.
-
-Schema changes require an Alembic revision under `src/document_manager/persistence/migrations/versions`. The `migration_config` context manager supplies Alembic with a connection to an explicitly selected database. Use a disposable development database for revision generation or downgrade checks.
-
-See [PROGRESS.md](PROGRESS.md) for the M2.3 Windows acceptance checklist.
+Use WiX 5.0.2 or compatible for the build command. The Qt tests require an environment that allows Chromium child processes. The installed-wheel probe runs with Node and npm removed from PATH and browser networking blocked. Backups and packaging tests use isolated workspaces.

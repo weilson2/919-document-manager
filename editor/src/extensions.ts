@@ -40,6 +40,7 @@ const ParagraphProperties = Extension.create({
     return [{
       types: ["paragraph", "heading"],
       attributes: {
+        showWhenFieldId: { default: null, rendered: false },
         textAlign: {
           default: null,
           parseHTML: (element) => choice(element.style.textAlign, alignments),
@@ -144,10 +145,18 @@ function managedImage(sessionId: string) {
   });
 }
 
+const PageBreak = Node.create({
+  name: "pageBreak",
+  group: "pageBreak",
+  atom: true,
+  selectable: true,
+  renderHTML: () => ["hr", { class: "manual-page-break", "aria-label": "Page break" }],
+});
+
 export function editorExtensions(sessionId: string) {
   return [
     DocumentWithFields, Paragraph, Text, Heading.configure({ levels: [1, 2, 3] }), Bold, Italic, Underline,
     BulletList, OrderedList, ListItem, ListKeymap, UndoRedo, ParagraphProperties, TextProperties,
-    EditableTable, TableRow, TableCell, TableHeader, managedImage(sessionId), fieldNode(sessionId),
+    EditableTable, TableRow, TableCell, TableHeader, managedImage(sessionId), fieldNode(sessionId), PageBreak,
   ];
 }

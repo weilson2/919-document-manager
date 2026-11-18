@@ -6,21 +6,37 @@ from pathlib import Path
 from time import monotonic
 from unittest.mock import patch
 
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QPoint, Qt, QTimer
-from PySide6.QtGui import QImage
+from PySide6.QtCore import (
+    QBuffer,
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QPoint,
+    QSize,
+    Qt,
+    QTimer,
+)
+from PySide6.QtGui import QImage, QPainter
+from PySide6.QtPdf import QPdfDocument
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QPushButton
 
 import document_manager
 from document_manager.editor.bridge import DocumentResponse, EditorSession
+from document_manager.editor.images import import_image, load_image
+from document_manager.editor.print_layout import print_html
 from document_manager.editor.web import ENTRY_URL, register_editor_scheme
 from document_manager.persistence.database import (
     create_database_engine,
     upgrade_database,
 )
 from document_manager.services.business import BusinessService
+from document_manager.services.designs import checked_document
 from document_manager.services.settings import CompanyProfile, SettingsService
-from document_manager.ui.main_window import EDITOR_INDEX, MainWindow
+from document_manager.ui.acceptance_workspace import create_acceptance_workspace
+from document_manager.ui.fill_document import FillDialog
+from document_manager.ui.main_window import EDITOR_INDEX, NAVIGATION, MainWindow
+from document_manager.ui.pdf_view import PdfJob, PdfPreview
 
 
 def evaluate(page, script):
@@ -343,6 +359,223 @@ def exercise_fields(page, status, responses):
     wait_for(page, f"document.querySelector('{cell}').textContent", "Last row — 麻坡")
 
 
+def exercise_print(company_id, workspace, business, parent):
+    business.install_starters(company_id)
+    starter = {template.name: template.id for template in business.designs.published_list(company_id)}
+    assert len(starter) == 10
+    template = starter["Blank Document"]
+    original = business.designs.open(company_id, template)
+    payload = original.document.model_dump(exclude_unset=True)
+    first = {"type": "paragraph", "content": [{"type": "text", "text": "Perjanjian sewa 麻坡"}]}
+    second = {"type": "paragraph", "content": [{"type": "text", "text": "Second page"}]}
+    local_image = workspace / "print-logo.png"
+    make_image(local_image, 80, 24)
+    image = import_image(workspace, company_id, local_image)
+    table = {"type": "table", "content": [
+        {"type": "tableRow", "content": [{"type": "tableCell", "content": [second]}]},
+    ]}
+    payload["document"]["content"] = [first, {"type": "image", "attrs": {"assetId": image.asset_id, "width": 30}},
+                                    {"type": "pageBreak"}, table]
+    payload["print_settings"] = {"header": "Fictional header", "footer": "Fictional footer", "page_numbers": True}
+    business.designs.save(company_id, template, original.revision, payload, publish=True)
+    version = business.designs.published(company_id, template)
+    design = checked_document(version.document_json)
+    filled = business.fill.capture(company_id, design, {}, {})
+    html = print_html(design, filled.text_by_id, lambda asset_id: load_image(workspace, company_id, asset_id).content)
+    pdf = render_probe_pdf(html, design.page_settings, parent)
+    document = QPdfDocument()
+    buffer = QBuffer()
+    buffer.setData(pdf)
+    buffer.open(QBuffer.OpenModeFlag.ReadOnly)
+    document.load(buffer)
+    assert document.status() == QPdfDocument.Status.Ready
+    assert document.pageCount() == 2
+    assert abs(document.pagePointSize(0).width() - 595) <= 2
+    assert abs(document.pagePointSize(0).height() - 842) <= 2
+    first_text = document.getAllText(0).text()
+    second_text = document.getAllText(1).text()
+    assert "Perjanjian sewa" in first_text and "麻坡" in first_text
+    assert "Second page" in second_text and "Fictional footer" in second_text and "2" in second_text
+    preview = QImage(QSize(595, 842), QImage.Format.Format_RGB32)
+    preview.fill(Qt.GlobalColor.white)
+    with QPainter(preview) as painter:
+        painter.drawImage(0, 0, document.render(0, preview.size()))
+    assert preview.save(str(workspace / "rendered-preview.png"))
+    assert any(preview.pixelColor(x, y).name() == "#008080"
+               for x in range(60, 230, 5) for y in range(80, 150, 5)), "The image is missing from the printed page."
+    assert all(preview.pixelColor(x, 100).name() == "#ffffff" for x in range(50))
+    document_id = business.documents.save(company_id, version.id, filled, pdf)
+    assert business.documents.get(company_id, document_id).pdf == pdf
+    document.close()
+
+    rows = [
+        {"type": "tableRow", "content": [{"type": "tableCell", "content": [
+            {"type": "paragraph", "content": [{"type": "text", "text": f"Row-{index:03} · 测试"}]},
+        ]}]} for index in range(120)
+    ]
+    payload["document"]["content"] = [{"type": "table", "content": rows}]
+    payload["page_settings"].update(page_size="A5", orientation="landscape")
+    a5 = checked_document(payload)
+    landscape = render_probe_pdf(print_html(a5, {}, lambda _asset: b""), a5.page_settings, parent)
+    buffer.close()
+    buffer.setData(landscape)
+    buffer.open(QBuffer.OpenModeFlag.ReadOnly)
+    document.load(buffer)
+    assert document.pageCount() > 3
+    assert abs(document.pagePointSize(0).width() - 595) <= 2
+    assert abs(document.pagePointSize(0).height() - 420) <= 2
+    # PDFium may insert line separators between glyph runs even when the row renders on one line.
+    content = "\n".join("".join(document.getAllText(page).text().splitlines()) for page in range(document.pageCount()))
+    anomalies = {index: content.count(f"Row-{index:03}") for index in range(120)
+                 if content.count(f"Row-{index:03}") != 1}
+    assert not anomalies, anomalies
+    document.close()
+
+
+def render_probe_pdf(html, settings, parent):
+    loop = QEventLoop()
+    result = []
+
+    def done(value):
+        result.append(value)
+        loop.quit()
+
+    PdfJob(html, settings, done, parent)
+    if not result:
+        QTimer.singleShot(27_000, loop.quit)
+        loop.exec()
+    assert result and result[0], "Qt WebEngine could not produce a valid offline PDF."
+    return result[0]
+
+
+def exercise_document_journeys(workspace):
+    workspace.mkdir()
+    engine = create_database_engine(workspace / "document-manager.sqlite3")
+    try:
+        upgrade_database(engine)
+        settings = SettingsService(engine)
+        business = BusinessService(engine)
+        create_acceptance_workspace(settings, business, 1)
+        assert len(business.list_records("tenant", 1)) == len(business.list_records("employee", 1)) == 2
+        assert len(business.documents.list(1)) == 3
+        window = MainWindow(settings, business, 1, settings.get_company(1), workspace, starter_designs=True)
+        window.show()
+        qapp = QApplication.instance()
+        try:
+            initial_agreement = business.documents.list(1, "Stall Rental Agreement")[0]
+            initial_pdf = business.documents.get(1, initial_agreement.id).pdf
+            window._reuse_document(initial_agreement.id)
+            fill = visible_dialog(window, FillDialog)
+            fields = {field.key: field.id for field in fill._design.fields}
+            fill._fields[fields["rent"]][2]("1302.98")
+            save_visible_pdf(window, fill)
+            assert len(business.documents.list(1, "Stall Rental Agreement")) == 2
+            assert business.documents.get(1, initial_agreement.id).pdf == initial_pdf
+
+            find_button(window.dashboard, "New Offer Letter").click()
+            fill = visible_dialog(window, FillDialog)
+            chooser = fill._subjects["employee"]
+            chooser.setCurrentIndex(1)
+            fields = {field.key: field.id for field in fill._design.fields}
+            assert fill._fields[fields["salary"]][1]() == "2100.00"
+            for key, value in (("probation", "90 days"), ("notice", "As agreed"), ("hours", "See the roster")):
+                fill._fields[fields[key]][2](value)
+            save_visible_pdf(window, fill)
+            assert len(business.documents.list(1, "Employee Offer Letter")) == 2
+
+            find_button(window.dashboard, "New Payslip").click()
+            assert window.navigation.currentRow() == NAVIGATION.index("Payroll")
+            payroll = window.payroll
+            payroll._selected_employee.setCurrentIndex(1)
+            payroll._inputs["overtime"].setText("12.90")
+            find_button(payroll, "Check approval").click()
+            assert payroll._status.text().startswith("Approval blocked")
+            find_button(payroll, "Save draft revision").click()
+            find_button(payroll, "Preview payslip").click()
+            fill = visible_dialog(window, FillDialog)
+            save_visible_pdf(window, fill)
+            assert all(run.status == "draft" for run in business.payroll.list(1))
+            assert len(business.documents.list(1, "Draft payslip")) == 2
+
+            custom = next(row.id for row in business.designs.published_list(1) if row.name.startswith("Demo Custom"))
+            assert window._open_design(custom)
+            editor = window.document_editor._page
+            status = "document.getElementById('editor-status').textContent"
+            wait_for(editor, status, "Editor ready")
+            select_text(editor, ".tiptap h1")
+            insert_text(editor, " 确认")
+            wait_for(editor, status, "Draft saved")
+            click(editor, "#publish-design")
+            wait_for(editor, status, "Version 2 published")
+            window._open_fill(custom)
+            fill = visible_dialog(window, FillDialog)
+            fill._fields[fill._design.fields[0].id][2]("Fictional Visitor")
+            find_button(fill, "Edit design").click()
+            assert window._paused_fill is fill and not fill.isVisible()
+            find_button(window, "Return to filled values").click()
+            assert visible_dialog(window, FillDialog) is fill
+            assert fill._fields[fill._design.fields[0].id][1]() == "Fictional Visitor"
+            save_visible_pdf(window, fill)
+            assert len(business.documents.list(1, "Demo Custom")) == 1
+        finally:
+            window.close()
+            window.deleteLater()
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+            qapp.processEvents()
+    finally:
+        engine.dispose()
+
+
+def find_button(parent, label):
+    return next(button for button in parent.findChildren(QPushButton) if button.text() == label)
+
+
+def visible_dialog(parent, kind):
+    deadline = monotonic() + 12
+    while monotonic() < deadline:
+        for dialog in parent.findChildren(kind):
+            if dialog.isVisible():
+                return dialog
+        QTest.qWait(30)
+    raise AssertionError(f"{kind.__name__} did not open.")
+
+
+def save_visible_pdf(window, fill):
+    loop = QEventLoop()
+    saved = []
+    failure = []
+    timer = QTimer()
+    deadline = monotonic() + 20
+    fill.saved.connect(saved.append)
+
+    def confirm():
+        preview = next((dialog for dialog in window.findChildren(PdfPreview) if dialog.isVisible()), None)
+        if preview is None:
+            if monotonic() < deadline and fill._printing:
+                return
+            failure.append("Print preview did not open.")
+            timer.stop()
+            loop.quit()
+            return
+        try:
+            find_button(preview, "Save to history").click()
+            assert saved
+            find_button(preview, "Back to form").click()
+            QTimer.singleShot(0, fill.reject)
+        except (AssertionError, RuntimeError, StopIteration) as error:
+            failure.append(error)
+        finally:
+            timer.stop()
+            loop.quit()
+
+    find_button(fill, "Preview PDF").click()
+    timer.timeout.connect(confirm)
+    timer.start(25)
+    loop.exec()
+    assert not failure, (failure, fill._status.text())
+    QTest.qWait(30)
+
+
 def main(workspace: Path) -> None:
     register_editor_scheme()
     app = QApplication([])
@@ -425,12 +658,14 @@ def main(workspace: Path) -> None:
             assert evaluate(new_page, "document.querySelector('.tiptap').textContent") == ""
             assert evaluate(new_page, "document.getElementById('field-library').options.length") == 1
             assert_image_blocked(new_page, image_url)
+            exercise_print(other, workspace, window.business, window)
     finally:
         window.close()
         window.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         app.processEvents()
         engine.dispose()
+    exercise_document_journeys(workspace / "fictional")
     print("Offline renderer startup, WebChannel JSON round trip, navigation policy, and company switch passed.")
 
 

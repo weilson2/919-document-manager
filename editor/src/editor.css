@@ -259,3 +259,6 @@ button[aria-pressed="true"] { background: #e1eeff; color: #173e69; border-color:
 
 #layout-warning { color: #884722; }
 .session-note { margin-left: auto; color: #526780; }
+.manual-page-break { border: 0; border-top: 1px dashed #7094be; margin: 10px 0; }
+.preview-window .manual-page-break { border-color: transparent; }
+.preview-page-header { position: absolute; top: 10px; inset-inline: var(--margin-left) var(--margin-right); font-size: 11px; text-align: center; }

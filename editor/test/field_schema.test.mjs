@@ -33,3 +33,13 @@ test("date range and dropdown defaults must match their rules", () => {
   assert.deepEqual(parseField(dropdown), dropdown);
   assert.throws(() => parseField({ ...dropdown, default: "C" }), /listed default/);
 });
+
+test("integer and decimal values, bindings, and record references are distinct", () => {
+  assert.throws(() => parseField({ ...currency, type: "integer", formatting: {}, default: "5.1" }), /whole number/);
+  const decimal = { ...currency, type: "decimal", formatting: { decimals: 4 }, default: "9.1234" };
+  assert.deepEqual(parseField(decimal), decimal);
+  assert.throws(() => parseField({ ...decimal, binding: "tenant.password" }), /Unsupported record binding/);
+  const reference = { ...currency, type: "employee_reference", formatting: {}, validation: {}, default: "75" };
+  assert.deepEqual(parseField(reference), reference);
+  assert.throws(() => parseField({ ...reference, default: "011" }), /valid record ID/);
+});

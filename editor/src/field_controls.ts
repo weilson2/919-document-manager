@@ -4,8 +4,8 @@ import { NodeSelection } from "@tiptap/pm/state";
 import { element } from "./controls";
 import { definitions, selectedField } from "./field_node";
 import {
-  type FieldDefinition, type FieldType, dateTypes, displayStyles, fieldTypes, flagTypes,
-  numericTypes, parseField, parseFields, textTypes,
+  type FieldDefinition, type FieldType, bindings, dateTypes, displayStyles, fieldTypes, flagTypes,
+  numericTypes, parseField, parseFields, referenceTypes, textTypes,
 } from "./field_schema";
 
 type Input = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
@@ -44,6 +44,7 @@ export function bindFields(editor: Editor): void {
   const usage = element("field-usage");
   const key = element<HTMLInputElement>("field-key");
   const label = element<HTMLInputElement>("field-label");
+  const description = element<HTMLInputElement>("field-description");
   const kind = element<HTMLSelectElement>("field-type");
   const required = element<HTMLInputElement>("field-required");
   const remove = element<HTMLButtonElement>("delete-field");
@@ -54,7 +55,7 @@ export function bindFields(editor: Editor): void {
   let creating = false;
   let registry = definitions(editor);
   let formDefinition: FieldDefinition | undefined;
-  let readValues: () => Pick<FieldDefinition, "default" | "validation" | "formatting">;
+  let readValues: () => Pick<FieldDefinition, "default" | "validation" | "formatting" | "binding">;
 
   function optionsFor(type: FieldType, previous?: FieldDefinition): void {
     values.replaceChildren();
@@ -68,7 +69,9 @@ export function bindFields(editor: Editor): void {
     };
     let readDefault: () => FieldDefinition["default"];
     const readers: Partial<Record<keyof FieldDefinition["validation"], () => string | number | string[] | undefined>> = {};
-    if (flagTypes.has(type)) {
+    if (referenceTypes.has(type)) {
+      readDefault = () => typeof original === "string" ? original : null;
+    } else if (flagTypes.has(type)) {
       const options: [string, string][] = type === "checkbox" ? [["true", "Checked"], ["false", "Unchecked"]]
         : [["true", "True"], ["false", "False"]];
       const control = add("Default when filling", select([["", "No default"], ...options]), "field-default",
@@ -106,14 +109,20 @@ export function bindFields(editor: Editor): void {
       readers.options = () => options.value.split(/\r?\n/).map((option) => option.trim()).filter(Boolean);
     }
     const styles = displayStyles(type);
+    const binding = referenceTypes.has(type) ? null : add("Prefill from", select([
+      ["", "No record binding"],
+      ...bindings.map((entry): [string, string] => [entry, entry.replace(".", " › ").replaceAll("_", " ")]),
+    ]), "field-binding", previous?.binding);
     const style = styles.length ? add("Display format", select([["", "Default"], ...styles]), "field-format", formatting.style) : null;
-    const decimals = type === "number" ? add("Display decimals", input("number"), "field-decimals", formatting.decimals) : null;
+    const decimals = type === "number" || type === "decimal"
+      ? add("Display decimals", input("number"), "field-decimals", formatting.decimals) : null;
     if (decimals) {
       decimals.min = "0";
       decimals.max = "6";
     }
     readValues = () => ({
       default: readDefault(),
+      ...(binding?.value ? { binding: binding.value } : {}),
       validation: Object.fromEntries(Object.entries(readers).flatMap(([rule, read]) => {
         const value = read();
         return value === undefined ? [] : [[rule, value]];
@@ -128,7 +137,7 @@ export function bindFields(editor: Editor): void {
   function referenceCount(): number {
     let count = 0;
     editor.state.doc.descendants((node) => {
-      if (node.type.name === "field" && node.attrs.fieldId === id) count += 1;
+      if (node.type.name === "field" && node.attrs.fieldId === id || node.attrs.showWhenFieldId === id) count += 1;
     });
     return count;
   }
@@ -154,6 +163,7 @@ export function bindFields(editor: Editor): void {
     if (panel.hidden) return;
     key.value = field?.key ?? "";
     label.value = field?.label ?? "";
+    description.value = field?.description ?? "";
     required.checked = field?.required ?? false;
     kind.value = field?.type ?? "text";
     optionsFor(kind.value as FieldType, field);
@@ -191,7 +201,7 @@ export function bindFields(editor: Editor): void {
     try {
       const field = parseField({
         id: id ?? newId(), key: key.value.trim(), label: label.value.trim(), type: kind.value,
-        required: required.checked, ...readValues(),
+        required: required.checked, ...(description.value.trim() ? { description: description.value.trim() } : {}), ...readValues(),
       });
       const next = id ? registry.map((entry) => entry.id === id ? field : entry) : [...registry, field];
       const validated = parseFields(next);

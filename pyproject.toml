@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "document-manager-919"
-version = "0.3.0.dev3"
+version = "0.4.0rc1"
 description = "Offline Windows desktop workspace for business documents"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -13,10 +13,12 @@ dependencies = [
     "SQLAlchemy==2.0.58",
     "alembic==1.20.1",
     "pydantic==2.14.3",
+    "cryptography==50.0.2",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest==9.2.0", "pytest-qt==4.5.0", "build==1.6.1", "setuptools==84.2.1"]
+packaging = ["PyInstaller==6.22.3"]
 
 [project.gui-scripts]
 919-document-manager = "document_manager.app:main"
@@ -25,6 +27,7 @@ dev = ["pytest==9.2.0", "pytest-qt==4.5.0", "build==1.6.1", "setuptools==84.2.1"
 where = ["src"]
 
 [tool.setuptools.package-data]
+"document_manager" = ["presets/*.json"]
 "document_manager.persistence.migrations" = ["script.py.mako"]
 "document_manager.editor" = ["assets/*.css", "assets/*.html", "assets/*.js", "assets/*.txt"]
 

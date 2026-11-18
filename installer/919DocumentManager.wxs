@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="919 Document Manager" Manufacturer="919 Document Manager"
+           Version="0.4.0" UpgradeCode="{61E37485-07D3-4157-986E-62FD36BCB92E}" Scope="perUserOrMachine">
+    <MediaTemplate EmbedCab="yes" />
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="919 Document Manager" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="StartMenuLink" Guid="{383DBCAF-44D9-4BBF-B6FE-A0BFF29DFCCB}">
+        <Shortcut Id="Launch919"
+                  Name="919 Document Manager"
+                  Target="[INSTALLFOLDER]919DocumentManager.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKMU" Key="Software\919DocumentManager\Installer"
+                       Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+    <Feature Id="Application">
+      <Files Directory="INSTALLFOLDER" Include="!(bindpath.app)\**" />
+      <ComponentRef Id="StartMenuLink" />
+    </Feature>
+  </Package>
+</Wix>

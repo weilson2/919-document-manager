@@ -42,6 +42,8 @@
             <option value="0.75">75%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select>
           <button id="preview-toggle" type="button" aria-pressed="false" disabled>Preview</button>
           <button id="verify-document" type="button" title="Checks the document structure, field definitions, and references" disabled>Check structure</button>
+          <button id="save-design" type="button" hidden>Save draft</button>
+          <button id="publish-design" type="button" hidden>Publish design</button>
         </div>
       </header>
       <div class="editor-layout">
@@ -52,6 +54,7 @@
             <button type="button" data-command="heading">Heading</button>
             <button type="button" data-command="table">Table</button>
             <button type="button" data-command="image">Image</button>
+            <button type="button" data-command="page-break">Page break</button>
           </fieldset>
           <section id="field-tools" hidden>
             <h2>Fields</h2>
@@ -83,6 +86,7 @@
               <form id="field-form">
                 <label>Field key (internal) <input id="field-key" required maxlength="64" placeholder="tenant_name"></label>
                 <label>Label on document <input id="field-label" required maxlength="120"></label>
+                <label>Help text in Fill Mode <input id="field-description" maxlength="400"></label>
                 <label>Type <select id="field-type"></select></label>
                 <label class="field-required">Required <input id="field-required" type="checkbox"></label>
                 <div id="field-type-values"></div>
@@ -113,6 +117,7 @@
               <label>Line spacing <select id="line-spacing"><option value="">Default</option><option>1</option>
                 <option>1.15</option><option>1.5</option><option>2</option></select></label>
               <label>After (pt) <input id="space-after" type="number" min="0" max="48" placeholder="Default"></label>
+              <label>Show paragraph when filled <select id="show-when-field"></select></label>
             </section>
             <section id="table-properties" hidden><h2>Table</h2>
               <label>Borders <select id="table-borders"><option value="grid">Grid</option><option value="none">None</option></select></label>
@@ -122,6 +127,8 @@
                 <button type="button" data-command="add-column">Add column</button>
                 <button type="button" data-command="delete-column">Delete column</button>
                 <button type="button" data-command="header-row">Toggle header row</button>
+                <button type="button" data-command="merge-cells" title="Select multiple cells to merge">Merge cells</button>
+                <button type="button" data-command="split-cell">Split cell</button>
                 <button type="button" data-command="delete-table">Delete table</button>
               </div>
             </section>
@@ -135,6 +142,10 @@
                 <label>Bottom (mm)<input type="number" min="0" max="60" data-margin="margin_bottom"></label>
                 <label>Left (mm)<input type="number" min="0" max="60" data-margin="margin_left"></label>
               </div>
+              <label>Repeated header <input id="page-header" maxlength="160"></label>
+              <label>Repeated footer <input id="page-footer" maxlength="160"></label>
+              <label class="check-label">Print page numbers <input id="page-numbers" type="checkbox"></label>
+              <label class="check-label">Print the company logo <input id="page-company-logo" type="checkbox"></label>
             </section>
           </fieldset>
         </aside>
@@ -142,7 +153,7 @@
       <footer class="status-bar">
         <span id="editor-status" role="status">Connecting to the editor…</span>
         <span id="layout-warning" role="status"></span>
-        <span class="session-note">Temporary editing session</span>
+        <span id="session-note" class="session-note">Temporary editing session</span>
       </footer>
     </main>
   </body>

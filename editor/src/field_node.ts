@@ -4,6 +4,7 @@ import { NodeSelection } from "@tiptap/pm/state";
 import type { FieldDefinition } from "./field_schema";
 
 export const DocumentWithFields = Document.extend({
+  content: "(block | pageBreak)+",
   addAttributes() {
     return { fields: { default: [], rendered: false } };
   },

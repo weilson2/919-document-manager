@@ -1,4 +1,6 @@
-from PySide6.QtCore import Qt, Signal
+from datetime import UTC
+
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -6,6 +8,10 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLineEdit,
+    QListView,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -38,6 +44,8 @@ HEADERS = {
 
 class RecordsPage(QWidget):
     changed = Signal()
+    design_requested = Signal(int)
+    fill_requested = Signal(int)
 
     def __init__(self, service: BusinessService, kind: RecordKind):
         super().__init__()
@@ -46,6 +54,7 @@ class RecordsPage(QWidget):
         self.company_id = None
         self.rows = []
         self.categories = {}
+        self.gallery = None
 
         self.search = QLineEdit()
         self.search.setPlaceholderText(f"Search {'employees' if kind == 'employee' else kind + 's'}")
@@ -75,7 +84,7 @@ class RecordsPage(QWidget):
 
         self.new_button = QPushButton(f"New {kind}")
         self.new_button.clicked.connect(self.new_record)
-        self.edit_button = QPushButton("Edit")
+        self.edit_button = QPushButton("Rename or categorize" if kind == "template" else "Edit")
         self.edit_button.clicked.connect(self.edit_record)
         self.archive_button = QPushButton("Archive")
         self.archive_button.clicked.connect(self.change_archive)
@@ -83,16 +92,25 @@ class RecordsPage(QWidget):
         actions.addWidget(self.new_button)
         actions.addWidget(self.edit_button)
         actions.addWidget(self.archive_button)
+        design_actions = QHBoxLayout()
         if kind == "template":
+            self.fill_button = QPushButton("Create document")
+            self.fill_button.clicked.connect(self.use_template)
+            self.design_button = QPushButton("Edit design")
+            self.design_button.clicked.connect(self.edit_design)
             self.duplicate_button = QPushButton("Duplicate")
             self.duplicate_button.clicked.connect(self.duplicate)
             self.publish_button = QPushButton("Publish metadata")
             self.publish_button.clicked.connect(self.publish)
             self.category_button = QPushButton("New category")
             self.category_button.clicked.connect(self.new_category)
+            self.versions_button = QPushButton("Versions")
+            self.versions_button.clicked.connect(self._view_versions)
             actions.addWidget(self.duplicate_button)
-            actions.addWidget(self.publish_button)
-            actions.addWidget(self.category_button)
+            self.publish_button.hide()
+            for button in (self.fill_button, self.design_button, self.versions_button, self.category_button):
+                design_actions.addWidget(button)
+            design_actions.addStretch()
         actions.addStretch()
 
         filters = QHBoxLayout()
@@ -100,14 +118,33 @@ class RecordsPage(QWidget):
         filters.addWidget(self.status_filter)
         filters.addWidget(self.type_filter)
         filters.addWidget(self.archive_filter)
+        if kind == "template":
+            list_view = QCheckBox("List view")
+            list_view.toggled.connect(self._toggle_gallery)
+            filters.addWidget(list_view)
+            self.gallery = QListWidget()
+            self.gallery.setObjectName("templateGallery")
+            self.gallery.setAccessibleName("Template gallery")
+            self.gallery.setViewMode(QListView.ViewMode.IconMode)
+            self.gallery.setResizeMode(QListView.ResizeMode.Adjust)
+            self.gallery.setMovement(QListView.Movement.Static)
+            self.gallery.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+            self.gallery.setSpacing(8)
+            self.gallery.currentRowChanged.connect(self._select_card)
+            self.gallery.itemDoubleClicked.connect(lambda _item: self.edit_design())
+            self.table.hide()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
         layout.addLayout(actions)
+        if self.gallery is not None:
+            layout.addLayout(design_actions)
         layout.addLayout(filters)
         layout.addWidget(self.status)
         layout.addWidget(self.table, 1)
+        if self.gallery is not None:
+            layout.addWidget(self.gallery, 1)
 
         self.search.textChanged.connect(self.refresh)
         self.status_filter.currentIndexChanged.connect(self.refresh)
@@ -144,6 +181,8 @@ class RecordsPage(QWidget):
             return False
         self.table.clearSelection()
         self.table.setRowCount(0)
+        if self.gallery is not None:
+            self.gallery.clear()
         self.rows = []
         try:
             if self.kind == "template":
@@ -165,6 +204,8 @@ class RecordsPage(QWidget):
         for index, record in enumerate(self.rows):
             for column, value in enumerate(self._columns(record)):
                 self.table.setItem(index, column, QTableWidgetItem(value))
+            if self.gallery is not None:
+                self._add_card(record)
         if self.rows:
             self.status.clear()
         elif self.archive_filter.isChecked():
@@ -201,13 +242,101 @@ class RecordsPage(QWidget):
         self.archive_button.setEnabled(record is not None)
         self.archive_button.setText("Restore" if archived else "Archive")
         if self.kind == "template":
+            self.design_button.setEnabled(record is not None and not archived)
+            self.fill_button.setEnabled(record is not None and not archived)
             self.duplicate_button.setEnabled(record is not None)
             self.publish_button.setEnabled(record is not None and not archived and record.status == "draft")
             self.category_button.setEnabled(self.company_id is not None)
+            self.versions_button.setEnabled(record is not None)
+
+    def _toggle_gallery(self, list_view):
+        self.table.setVisible(list_view)
+        self.gallery.setVisible(not list_view)
+        selected = self.table.selectionModel().selectedRows()
+        self.gallery.setCurrentRow(selected[0].row() if selected else -1)
+
+    def _select_card(self, index):
+        if index < 0:
+            self.table.clearSelection()
+        else:
+            self.table.selectRow(index)
+
+    def _add_card(self, record):
+        category = self.categories.get(record.category_id, "Uncategorized")
+        status = TEMPLATE_STATUSES[record.status]
+        changed = record.updated_at.replace(tzinfo=UTC).astimezone().strftime("%d %b %Y %H:%M")
+        item = QListWidgetItem(record.name)
+        item.setSizeHint(QSize(236, 145))
+        item.setToolTip(record.description or record.name)
+        self.gallery.addItem(item)
+        widget = QWidget()
+        widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        card = QVBoxLayout(widget)
+        card.setContentsMargins(14, 12, 14, 12)
+        card.setSpacing(5)
+        title = plain_label(record.name, object_name="sectionTitle")
+        title.setMaximumHeight(38)
+        card.addWidget(title)
+        card.addWidget(plain_label(f"{category} · {status}"))
+        description = record.description or "No description"
+        details = plain_label(description[:105] + ("…" if len(description) > 105 else ""))
+        details.setMaximumHeight(35)
+        card.addWidget(details, 1)
+        card.addWidget(plain_label(f"Modified {changed}"))
+        self.gallery.setItemWidget(item, widget)
+
+    def _view_versions(self):
+        record = self._selected()
+        if record is None:
+            return
+        try:
+            rows = list(reversed(self.service.list_template_versions(self.company_id, record.id)))
+        except HANDLED_ERRORS as error:
+            self.status.setText(error_text(error, "Load versions"))
+            return
+        lines = []
+        previous = None
+        previous_name = None
+        for version in rows:
+            design = version.document_json
+            name = version.metadata_snapshot["name"]
+            timestamp = version.created_at.replace(tzinfo=UTC).astimezone().strftime("%d %b %Y %H:%M")
+            line = f"Version {version.version_number} · {timestamp} · {name}"
+            if design is None:
+                note = "Metadata only"
+            elif previous is None:
+                note = f"Initial design · {len(design['fields'])} fields"
+            else:
+                old, new = ({field["key"] for field in data["fields"]} for data in (previous, design))
+                changed = "Layout changed" if any(previous.get(key) != design.get(key) for key in (
+                    "document", "print_settings", "page_settings",
+                )) else "Same layout"
+                note = f"{changed} · {len(new - old)} added fields · {len(old - new)} removed fields"
+            if previous_name is not None and previous_name != name:
+                note += " · Renamed"
+            lines.append(f"{line}\n{note}")
+            previous, previous_name = design, name
+        dialog = QMessageBox(self)
+        dialog.setTextFormat(Qt.TextFormat.PlainText)
+        dialog.setWindowTitle("Published template versions")
+        dialog.setText(f"{len(rows)} published version(s) for {record.name}")
+        if lines:
+            dialog.setDetailedText("\n\n".join(reversed(lines)))
+        dialog.exec()
 
     def new_record(self) -> None:
         if self.company_id is not None:
             self._edit(None)
+
+    def edit_design(self) -> None:
+        record = self._selected()
+        if record is not None and record.archived_at is None:
+            self.design_requested.emit(record.id)
+
+    def use_template(self) -> None:
+        record = self._selected()
+        if record is not None and record.archived_at is None:
+            self.fill_requested.emit(record.id)
 
     def edit_record(self, *_args) -> None:
         record = self._selected()

@@ -1,5 +1,5 @@
 import { type Page, measureDocument, paginate, paperMetrics } from "./pagination";
-import type { PageSettings } from "./protocol";
+import type { PageSettings, PrintSettings } from "./protocol";
 
 function element<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
@@ -22,6 +22,7 @@ export class PageCanvas {
   private previewing = false;
   private updateFrame = 0;
   private observer: IntersectionObserver | undefined;
+  private printSettings: PrintSettings = { header: "", footer: "", page_numbers: false };
 
   constructor(private content: HTMLElement, settings: PageSettings) {
     this.metrics = paperMetrics(settings);
@@ -41,6 +42,11 @@ export class PageCanvas {
     };
     for (const [name, value] of Object.entries(sizes)) this.layer.style.setProperty(name, value + "px");
     this.applyScale();
+    this.schedule();
+  }
+
+  setPrintSettings(settings: PrintSettings): void {
+    this.printSettings = settings;
     this.schedule();
   }
 
@@ -93,7 +99,7 @@ export class PageCanvas {
     this.applyScale();
     const { bodyHeight, top } = this.metrics;
     const measured = measureDocument(this.content, this.scale, bodyHeight);
-    this.pages = paginate(measured.height, bodyHeight, measured.breaks);
+    this.pages = paginate(measured.height, bodyHeight, measured.breaks, measured.forcedBreaks);
     this.overflowWidth = Math.max(0, measured.width - this.content.clientWidth);
     this.warning.textContent = this.pages.some((page) => page.oversized) || this.overflowWidth > 1
       ? "Oversized content extends beyond the paper size." : "";
@@ -157,9 +163,16 @@ export class PageCanvas {
       clip.style.height = `${Math.min(Math.max(span, 0), page.oversized ? span : bodyHeight + 0.75)}px`;
       const number = document.createElement("span");
       number.className = "preview-page-number";
-      number.textContent = String(index + 1);
+      number.textContent = [this.printSettings.footer, this.printSettings.page_numbers ? String(index + 1) : ""]
+        .filter(Boolean).join("  ·  ");
       printPage.append(clip);
       if (bottom >= 16) printPage.append(number);
+      if (top >= 16 && this.printSettings.header) {
+        const header = document.createElement("span");
+        header.className = "preview-page-header";
+        header.textContent = this.printSettings.header;
+        printPage.append(header);
+      }
       this.preview.append(printPage);
       this.observer.observe(printPage);
     }

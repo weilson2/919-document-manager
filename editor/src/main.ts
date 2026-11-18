@@ -1,4 +1,4 @@
-import { Editor } from "@tiptap/core";
+import { Editor, type JSONContent } from "@tiptap/core";
 import { PageCanvas } from "./canvas";
 import { bindControls, element } from "./controls";
 import { editorExtensions } from "./extensions";
@@ -61,6 +61,12 @@ function canonical(value: unknown): string {
   });
 }
 
+function omitUnusedConditions(node: JSONContent): JSONContent {
+  if (node.attrs?.showWhenFieldId === null) delete node.attrs.showWhenFieldId;
+  node.content?.forEach(omitUnusedConditions);
+  return node;
+}
+
 async function start(): Promise<void> {
   const bridge = await connect();
   const session = await request(bridge, { method: "open", protocol_version: 1, schema_version: 3 });
@@ -80,6 +86,24 @@ async function start(): Promise<void> {
   });
   const canvas = new PageCanvas(editor.view.dom, session.document.page_settings);
   const report = (message: string) => { statusElement.textContent = message; };
+  let designRevision = session.design_revision;
+  const header = element<HTMLInputElement>("page-header");
+  const footer = element<HTMLInputElement>("page-footer");
+  const pageNumbers = element<HTMLInputElement>("page-numbers");
+  const companyLogo = element<HTMLInputElement>("page-company-logo");
+  header.value = session.document.print_settings?.header ?? "";
+  footer.value = session.document.print_settings?.footer ?? "";
+  pageNumbers.checked = session.document.print_settings?.page_numbers ?? false;
+  companyLogo.checked = session.document.print_settings?.company_logo ?? false;
+  let printSettings = session.document.print_settings;
+  if (printSettings) canvas.setPrintSettings(printSettings);
+  for (const input of [header, footer, pageNumbers, companyLogo]) {
+    input.addEventListener("change", () => {
+      printSettings = { header: header.value, footer: footer.value, page_numbers: pageNumbers.checked, company_logo: companyLogo.checked };
+      canvas.setPrintSettings(printSettings);
+      if (designRevision !== undefined) queueSave();
+    });
+  }
   let importing = false;
   const settings = bindControls(editor, canvas, session.document.page_settings, async () => {
     if (importing) return;
@@ -98,16 +122,72 @@ async function start(): Promise<void> {
     } finally {
       importing = false;
     }
-  }, report);
+  }, report, () => { if (designRevision !== undefined) queueSave(); });
   bindFields(editor);
   const currentDocument = () => {
     const content = editor.getJSON();
     editor.schema.nodeFromJSON(content).check();
-    const { attrs, ...document } = content;
-    const parsed = parseVisualDocument({ schema_version: 3, fields: definitions(editor), document, page_settings: settings() });
+    const { attrs, ...document } = omitUnusedConditions(content);
+    const parsed = parseVisualDocument({
+      schema_version: 3, fields: definitions(editor), document, page_settings: settings(),
+      ...(printSettings ? { print_settings: printSettings } : {}),
+    });
     if (parsed.schema_version !== 3) throw new Error("Unsupported document schema");
     return parsed;
   };
+  const saveButton = element<HTMLButtonElement>("save-design");
+  const publishButton = element<HTMLButtonElement>("publish-design");
+  let pending: "save_design" | "publish_design" | undefined;
+  let saving = false;
+  let conflict = false;
+
+  function queueSave(method: "save_design" | "publish_design" = "save_design"): void {
+    void request(bridge, { ...binding, method: "mark_dirty" }).catch(() => {});
+    if (conflict) {
+      report("A newer draft exists. Reopen the design to load it.");
+      return;
+    }
+    if (pending !== "publish_design") pending = method;
+    void savePending();
+  }
+
+  async function savePending(): Promise<void> {
+    if (saving || pending === undefined || designRevision === undefined || conflict) return;
+    saving = true;
+    const method = pending;
+    pending = undefined;
+    try {
+      const result = await request(bridge, { ...binding, method, revision: designRevision, document: currentDocument() });
+      if (!result.ok && result.error === "design_conflict") {
+        conflict = true;
+        report("A newer draft exists. Reopen the design to load it.");
+        return;
+      }
+      if (!belongsHere(result) || !("published_version" in result)) throw new Error("Save failed");
+      designRevision = result.design_revision;
+      report(result.published_version === null ? "Draft saved" : `Version ${result.published_version} published`);
+    } catch {
+      report("This change has not been saved. Try Save draft again.");
+    } finally {
+      saving = false;
+      if (pending !== undefined && !conflict) void savePending();
+    }
+  }
+
+  if (designRevision !== undefined) {
+    saveButton.hidden = false;
+    publishButton.hidden = false;
+    element("session-note").textContent = "Template draft · Autosave on";
+    saveButton.addEventListener("click", () => queueSave());
+    publishButton.addEventListener("click", () => queueSave("publish_design"));
+    editor.on("update", () => queueSave());
+    window.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        queueSave();
+      }
+    });
+  }
   statusElement.textContent = "Editor ready";
   verifyButton.disabled = false;
   verifyButton.addEventListener("click", async () => {

@@ -1,8 +1,9 @@
+import re
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 
-from PySide6.QtCore import QIODevice, QSaveFile
+from PySide6.QtCore import QFile, QIODevice, QSaveFile
 
 from document_manager.raster import read_local_image
 
@@ -14,6 +15,25 @@ MAX_IMAGE_DIMENSION = 4096
 class ImportedImage:
     asset_id: str
     content: bytes
+
+
+def load_image(workspace: Path, company_id: int, asset_id: str) -> ImportedImage:
+    if re.fullmatch(r"[0-9a-f]{64}", asset_id) is None:
+        raise ValueError("Invalid image identifier.")
+    directory = workspace.resolve() / "editor-assets" / str(company_id)
+    target = directory / f"{asset_id}.png"
+    if target.resolve() != target:
+        raise OSError("The image is outside the managed asset folder.")
+    file = QFile(str(target))
+    if not file.open(QIODevice.OpenModeFlag.ReadOnly):
+        raise OSError("The managed image could not be opened.")
+    try:
+        content = bytes(file.read(MAX_IMAGE_BYTES + 1))
+    finally:
+        file.close()
+    if len(content) > MAX_IMAGE_BYTES or sha256(content).hexdigest() != asset_id:
+        raise OSError("The managed image is damaged.")
+    return ImportedImage(asset_id, content)
 
 
 def import_image(workspace: Path, company_id: int, user_selection: Path) -> ImportedImage:

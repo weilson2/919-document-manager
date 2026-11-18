@@ -115,8 +115,8 @@ class ActivityRepository:
             subject_id=subject_id, subject_label=label,
         ))
 
-    def recent(self, limit: int = 8):
-        return list(self.session.scalars(
-            select(BusinessActivity).where(BusinessActivity.company_id == self.company_id)
-            .order_by(BusinessActivity.id.desc()).limit(limit)
-        ))
+    def recent(self, limit: int = 8, *, omit_sensitive=False):
+        query = select(BusinessActivity).where(BusinessActivity.company_id == self.company_id)
+        if omit_sensitive:
+            query = query.where(BusinessActivity.subject_type.not_in(("employee", "payroll")))
+        return list(self.session.scalars(query.order_by(BusinessActivity.id.desc()).limit(limit)))

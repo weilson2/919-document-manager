@@ -18,7 +18,7 @@ from document_manager.services.settings import CompanyProfile, SettingsService
 
 def test_foundation_creates_seeded_database_and_matches_models(database_engine):
     with database_engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0002_business_data"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0005_payroll_and_access"
     with migration_config(database_engine) as config:
         command.check(config)
     profile = SettingsService(database_engine).get_company()
@@ -106,6 +106,27 @@ def test_m0_database_upgrade_preserves_profiles_and_default_selection(tmp_path):
         assert settings.get_company().registration_number == "BRN-2"
         assert settings.get_company().document_settings.page_size == "A4"
         with engine.connect() as connection:
+            assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
+    finally:
+        engine.dispose()
+
+
+def test_m1_metadata_versions_survive_release_migrations(tmp_path):
+    engine = create_database_engine(tmp_path / "m1.sqlite3")
+    try:
+        with migration_config(engine) as config:
+            command.upgrade(config, "0002_business_data")
+            connection = config.attributes["connection"]
+            connection.execute(text("INSERT INTO templates (id, company_id, name, status) VALUES (9,1,'Retained','published')"))
+            connection.execute(text(
+                "INSERT INTO template_versions (company_id, template_id, version_number, metadata_snapshot) "
+                "VALUES (1,9,1,:snapshot)"
+            ), {"snapshot": '{"name":"Retained"}'})
+        upgrade_database(engine)
+        with engine.connect() as connection:
+            assert connection.execute(text(
+                "SELECT version_number,metadata_snapshot,document_json FROM template_versions WHERE template_id=9"
+            )).one() == (1, '{"name":"Retained"}', None)
             assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
     finally:
         engine.dispose()

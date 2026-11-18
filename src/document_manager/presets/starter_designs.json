@@ -1,0 +1,243 @@
+[
+  {
+    "name": "Stall Rental Agreement",
+    "category": "Rental",
+    "description": "Illustrative rental terms and signature lines.",
+    "fields": [
+      {"id":"00000000000000000000000000000001","key":"company","label":"Company name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.name"},
+      {"id":"00000000000000000000000000000002","key":"registration","label":"Registration number","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.registration_number"},
+      {"id":"00000000000000000000000000000003","key":"address","label":"Company address","type":"address","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.address"},
+      {"id":"00000000000000000000000000000004","key":"tenant_name","label":"Tenant name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"tenant.name"},
+      {"id":"00000000000000000000000000000005","key":"tenant_id","label":"Identification","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"tenant.identification_number"},
+      {"id":"00000000000000000000000000000006","key":"tenant_address","label":"Tenant address","type":"address","required":true,"default":null,"validation":{},"formatting":{},"binding":"tenant.address"},
+      {"id":"00000000000000000000000000000007","key":"stall","label":"Stall number","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"tenant.stall_number"},
+      {"id":"00000000000000000000000000000008","key":"rental_type","label":"Rental frequency","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"tenant.rental_type"},
+      {"id":"00000000000000000000000000000009","key":"rent","label":"Rental amount","type":"currency","required":true,"default":null,"validation":{},"formatting":{},"binding":"tenant.rental_amount"},
+      {"id":"0000000000000000000000000000000a","key":"deposit","label":"Deposit","type":"currency","required":true,"default":null,"validation":{},"formatting":{},"binding":"tenant.deposit"},
+      {"id":"0000000000000000000000000000000b","key":"start","label":"Commencement date","type":"date","required":true,"default":null,"validation":{},"formatting":{},"binding":"tenant.start_date"},
+      {"id":"0000000000000000000000000000000c","key":"end","label":"End date","type":"date","required":false,"default":null,"validation":{},"formatting":{},"binding":"tenant.end_date"},
+      {"id":"0000000000000000000000000000000d","key":"terms","label":"Additional terms","type":"multiline","required":false,"default":null,"validation":{},"formatting":{}}
+    ],
+    "document": {"type": "doc", "content": [
+      {"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Stall Rental Agreement"}]},
+      {"type":"paragraph","content":[{"type":"text","text":"Company: "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000001"}},{"type":"text","text":" · "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000002"}}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000003"}}]},
+      {"type":"paragraph","content":[{"type":"text","text":"Tenant: "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000004"}},{"type":"text","text":" · Identification: "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000005"}}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000006"}}]},
+      {"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Rental terms"}]},
+      {"type":"table","attrs":{"borderStyle":"grid"},"content":[{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Stall"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000007"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Frequency"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000008"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Rent"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000009"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Deposit"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"0000000000000000000000000000000a"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Commencement"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"0000000000000000000000000000000b"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"End date"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"0000000000000000000000000000000c"}}]}]}]}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"0000000000000000000000000000000d"}}]},
+      {"type":"paragraph","content":[{"type":"text","text":"Company representative: ____________________    Date: ___________"}]},
+      {"type":"paragraph","content":[{"type":"text","text":"Tenant signature: __________________________    Date: ___________"}]}
+    ]}
+  },
+  {
+    "name": "Rental Receipt",
+    "category": "Rental",
+    "description": "Record receipt of a rental payment.",
+    "fields": [
+      {"id":"00000000000000000000000000000001","key":"company","label":"Company name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.name"},
+      {"id":"00000000000000000000000000000002","key":"registration","label":"Registration number","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.registration_number"},
+      {"id":"00000000000000000000000000000003","key":"tenant_name","label":"Tenant name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"tenant.name"},
+      {"id":"00000000000000000000000000000004","key":"stall","label":"Stall number","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"tenant.stall_number"},
+      {"id":"00000000000000000000000000000005","key":"received","label":"Received amount","type":"currency","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000006","key":"payment_date","label":"Payment date","type":"date","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000007","key":"reference","label":"Payment reference","type":"text","required":false,"default":null,"validation":{},"formatting":{}}
+    ],
+    "document": {"type": "doc", "content": [
+      {"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Rental Receipt"}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000001"}},{"type":"text","text":" · "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000002"}}]},
+      {"type":"table","attrs":{"borderStyle":"grid"},"content":[{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Received from"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000003"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Stall"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000004"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Amount"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000005"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Payment date"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000006"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Reference"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000007"}}]}]}]}]},
+      {"type":"paragraph","content":[{"type":"text","text":"Received by: __________________________"}]}
+    ]}
+  },
+  {
+    "name": "Employee Offer Letter",
+    "category": "Employment",
+    "description": "Illustrative job offer and employment details.",
+    "fields": [
+      {"id":"00000000000000000000000000000001","key":"company","label":"Company name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.name"},
+      {"id":"00000000000000000000000000000002","key":"registration","label":"Registration number","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.registration_number"},
+      {"id":"00000000000000000000000000000003","key":"address","label":"Company address","type":"address","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.address"},
+      {"id":"00000000000000000000000000000004","key":"employee_name","label":"Employee name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.name"},
+      {"id":"00000000000000000000000000000005","key":"employee_address","label":"Employee address","type":"address","required":false,"default":null,"validation":{},"formatting":{},"binding":"employee.address"},
+      {"id":"00000000000000000000000000000006","key":"position","label":"Position","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.position"},
+      {"id":"00000000000000000000000000000007","key":"salary","label":"Basic salary","type":"currency","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.basic_salary"},
+      {"id":"00000000000000000000000000000008","key":"commencement","label":"Commencement date","type":"date","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.start_date"},
+      {"id":"00000000000000000000000000000009","key":"probation","label":"Probation period","type":"text","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"0000000000000000000000000000000a","key":"hours","label":"Working hours","type":"text","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"0000000000000000000000000000000b","key":"notice","label":"Notice period","type":"text","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"0000000000000000000000000000000c","key":"terms","label":"Additional terms","type":"multiline","required":false,"default":null,"validation":{},"formatting":{}}
+    ],
+    "document": {"type": "doc", "content": [
+      {"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Employee Offer Letter"}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000001"}},{"type":"text","text":" · "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000002"}}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000003"}}]},
+      {"type":"paragraph","content":[{"type":"text","text":"To "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000004"}}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000005"}}]},
+      {"type":"paragraph","content":[{"type":"text","text":"We are pleased to offer you the following position."}]},
+      {"type":"table","attrs":{"borderStyle":"grid"},"content":[{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Position"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000006"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Basic salary"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000007"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Start date"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000008"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Probation period"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000009"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Working hours"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"0000000000000000000000000000000a"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Notice period"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"0000000000000000000000000000000b"}}]}]}]}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"0000000000000000000000000000000c"}}]},
+      {"type":"paragraph","content":[{"type":"text","text":"Company representative: ____________________"}]},
+      {"type":"paragraph","content":[{"type":"text","text":"Accepted by: __________________________   Date: ___________"}]}
+    ]}
+  },
+  {
+    "name": "Employee Payslip",
+    "category": "Payroll",
+    "description": "Payslip design used by the draft payroll workflow.",
+    "purpose": "payroll",
+    "fields": [
+      {"id":"00000000000000000000000000000001","key":"company","label":"Company name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.name"},
+      {"id":"00000000000000000000000000000002","key":"registration","label":"Registration number","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.registration_number"},
+      {"id":"00000000000000000000000000000003","key":"employee_name","label":"Employee name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.name"},
+      {"id":"00000000000000000000000000000004","key":"employee_number","label":"Employee number","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.employee_number"},
+      {"id":"00000000000000000000000000000005","key":"period","label":"Payroll month","type":"text","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000006","key":"payroll_status","label":"Payroll status","type":"text","required":true,"default":"DRAFT · statutory amounts unverified","validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000007","key":"basic","label":"Basic","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000008","key":"overtime","label":"Overtime","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000009","key":"allowances","label":"Allowances","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"0000000000000000000000000000000a","key":"bonus","label":"Bonus","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"0000000000000000000000000000000b","key":"commission","label":"Commission","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"0000000000000000000000000000000c","key":"other_earnings","label":"Other earnings","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"0000000000000000000000000000000d","key":"gross","label":"Gross","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"0000000000000000000000000000000e","key":"employee_epf","label":"Employee epf","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"0000000000000000000000000000000f","key":"employee_socso","label":"Employee socso","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000010","key":"employee_eis","label":"Employee eis","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000011","key":"pcb","label":"Pcb","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000012","key":"advance","label":"Advance","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000013","key":"other_deductions","label":"Other deductions","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000014","key":"deductions","label":"Deductions","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000015","key":"net","label":"Net","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000016","key":"employer_epf","label":"Employer epf","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000017","key":"employer_socso","label":"Employer socso","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000018","key":"employer_eis","label":"Employer eis","type":"currency","required":false,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000019","key":"employer_cost","label":"Employer cost","type":"currency","required":false,"default":null,"validation":{},"formatting":{}}
+    ],
+    "document": {"type": "doc", "content": [
+      {"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Employee Payslip"}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000001"}},{"type":"text","text":" · "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000002"}}]},
+      {"type":"heading","attrs":{"level":2},"content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000006"}}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000003"}},{"type":"text","text":" · "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000004"}},{"type":"text","text":" · "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000005"}}]},
+      {"type":"table","attrs":{"borderStyle":"grid"},"content":[{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Basic pay"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000007"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Overtime"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000008"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Allowances"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000009"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Bonus"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"0000000000000000000000000000000a"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Commission"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"0000000000000000000000000000000b"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Other earnings"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"0000000000000000000000000000000c"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Gross pay"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"0000000000000000000000000000000d"}}]}]}]}]},
+      {"type":"table","attrs":{"borderStyle":"grid"},"content":[{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Employee EPF"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"0000000000000000000000000000000e"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Employee SOCSO"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"0000000000000000000000000000000f"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Employee EIS"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000010"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"PCB / MTD"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000011"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Salary advance"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000012"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Other deductions"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000013"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Total deductions"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000014"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Net pay"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000015"}}]}]}]}]},
+      {"type":"table","attrs":{"borderStyle":"grid"},"content":[{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Employer EPF"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000016"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Employer SOCSO"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000017"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Employer EIS"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000018"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Employer cost"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000019"}}]}]}]}]}
+    ]}
+  },
+  {
+    "name": "Payment Voucher",
+    "category": "Finance",
+    "description": "Record a payment and its authorisation.",
+    "fields": [
+      {"id":"00000000000000000000000000000001","key":"company","label":"Company name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.name"},
+      {"id":"00000000000000000000000000000002","key":"registration","label":"Registration number","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.registration_number"},
+      {"id":"00000000000000000000000000000003","key":"payee","label":"Payee","type":"text","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000004","key":"amount","label":"Amount","type":"currency","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000005","key":"date","label":"Payment date","type":"date","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000006","key":"purpose","label":"Payment purpose","type":"multiline","required":true,"default":null,"validation":{},"formatting":{}}
+    ],
+    "document": {"type": "doc", "content": [
+      {"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Payment Voucher"}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000001"}},{"type":"text","text":" · "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000002"}}]},
+      {"type":"table","attrs":{"borderStyle":"grid"},"content":[{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Payee"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000003"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Amount"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000004"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Payment date"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000005"}}]}]}]}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000006"}}]},
+      {"type":"paragraph","content":[{"type":"text","text":"Approved by: __________________________"}]}
+    ]}
+  },
+  {
+    "name": "Salary Advance Record",
+    "category": "Payroll",
+    "description": "Draft record of a salary advance.",
+    "fields": [
+      {"id":"00000000000000000000000000000001","key":"company","label":"Company name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.name"},
+      {"id":"00000000000000000000000000000002","key":"registration","label":"Registration number","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.registration_number"},
+      {"id":"00000000000000000000000000000003","key":"employee_name","label":"Employee name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.name"},
+      {"id":"00000000000000000000000000000004","key":"amount","label":"Advance amount","type":"currency","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000005","key":"date","label":"Advance date","type":"date","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000006","key":"notes","label":"Notes","type":"multiline","required":false,"default":null,"validation":{},"formatting":{}}
+    ],
+    "document": {"type": "doc", "content": [
+      {"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Salary Advance Record"}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000001"}},{"type":"text","text":" · "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000002"}}]},
+      {"type":"table","attrs":{"borderStyle":"grid"},"content":[{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Employee"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000003"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Amount"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000004"}}]}]}]},{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Date"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000005"}}]}]}]}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000006"}}]},
+      {"type":"paragraph","content":[{"type":"text","text":"Employee signature: __________________________"}]}
+    ]}
+  },
+  {
+    "name": "Employment Confirmation Letter",
+    "category": "Employment",
+    "description": "Confirm employment and position.",
+    "fields": [
+      {"id":"00000000000000000000000000000001","key":"company","label":"Company name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.name"},
+      {"id":"00000000000000000000000000000002","key":"registration","label":"Registration number","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.registration_number"},
+      {"id":"00000000000000000000000000000003","key":"employee_name","label":"Employee name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.name"},
+      {"id":"00000000000000000000000000000004","key":"position","label":"Position","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.position"},
+      {"id":"00000000000000000000000000000005","key":"start","label":"Employment start date","type":"date","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.start_date"},
+      {"id":"00000000000000000000000000000006","key":"date","label":"Letter date","type":"date","required":true,"default":null,"validation":{},"formatting":{}}
+    ],
+    "document": {"type": "doc", "content": [
+      {"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Employment Confirmation"}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000001"}},{"type":"text","text":" · "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000002"}}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000006"}}]},
+      {"type":"paragraph","content":[{"type":"text","text":"This letter confirms that "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000003"}},{"type":"text","text":" has been employed as "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000004"}},{"type":"text","text":" since "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000005"}},{"type":"text","text":"."}]},
+      {"type":"paragraph","content":[{"type":"text","text":"Signed: __________________________"}]}
+    ]}
+  },
+  {
+    "name": "Warning Letter",
+    "category": "Employment",
+    "description": "Draft a notice about an employment matter.",
+    "fields": [
+      {"id":"00000000000000000000000000000001","key":"company","label":"Company name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.name"},
+      {"id":"00000000000000000000000000000002","key":"registration","label":"Registration number","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.registration_number"},
+      {"id":"00000000000000000000000000000003","key":"employee_name","label":"Employee name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.name"},
+      {"id":"00000000000000000000000000000004","key":"date","label":"Letter date","type":"date","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000005","key":"matter","label":"Matter and details","type":"multiline","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000006","key":"action","label":"Requested action","type":"multiline","required":true,"default":null,"validation":{},"formatting":{}}
+    ],
+    "document": {"type": "doc", "content": [
+      {"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Warning Letter"}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000001"}},{"type":"text","text":" · "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000002"}}]},
+      {"type":"paragraph","content":[{"type":"text","text":"To "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000003"}},{"type":"text","text":" · "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000004"}}]},
+      {"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Matter"}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000005"}}]},
+      {"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Requested action"}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000006"}}]},
+      {"type":"paragraph","content":[{"type":"text","text":"Company representative: __________________________"}]}
+    ]}
+  },
+  {
+    "name": "General Business Letter",
+    "category": "Correspondence",
+    "description": "Write a letter on behalf of the active company.",
+    "fields": [
+      {"id":"00000000000000000000000000000001","key":"company","label":"Company name","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.name"},
+      {"id":"00000000000000000000000000000002","key":"registration","label":"Registration number","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.registration_number"},
+      {"id":"00000000000000000000000000000003","key":"address","label":"Company address","type":"address","required":true,"default":null,"validation":{},"formatting":{},"binding":"company.address"},
+      {"id":"00000000000000000000000000000004","key":"recipient","label":"Recipient","type":"text","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000005","key":"date","label":"Letter date","type":"date","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000006","key":"subject","label":"Subject","type":"text","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000007","key":"body","label":"Letter content","type":"multiline","required":true,"default":null,"validation":{},"formatting":{}}
+    ],
+    "document": {"type": "doc", "content": [
+      {"type":"heading","attrs":{"level":1},"content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000001"}}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000002"}},{"type":"text","text":" · "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000003"}}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000005"}}]},
+      {"type":"paragraph","content":[{"type":"text","text":"To "},{"type":"field","attrs":{"fieldId":"00000000000000000000000000000004"}}]},
+      {"type":"heading","attrs":{"level":2},"content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000006"}}]},
+      {"type":"paragraph","content":[{"type":"field","attrs":{"fieldId":"00000000000000000000000000000007"}}]},
+      {"type":"paragraph","content":[{"type":"text","text":"Yours faithfully,"}]}
+    ]}
+  },
+  {
+    "name": "Blank Document",
+    "category": "Custom",
+    "description": "Start with an empty page.",
+    "fields": [
+    ],
+    "document": {"type": "doc", "content": [
+      {"type":"paragraph"}
+    ]}
+  }
+]

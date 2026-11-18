@@ -3,6 +3,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 VersionOne = Annotated[int, Field(strict=True, ge=1, le=1)]
+MAX_REQUEST_BYTES = 1_048_576
 
 
 class StrictModel(BaseModel):

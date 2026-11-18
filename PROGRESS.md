@@ -189,5 +189,37 @@ The user reported **Overall PASS**, with all nine checks passing.
 4. Remove the two inline references, then delete the definition and undo that deletion. Select **Check structure** and expect **Document structure verified**.
 5. Disconnect from the network, reopen the separate workspace, and repeat a field insertion. Switch companies to confirm the new session opens with an empty field list.
 
-M2.4 is pending acceptance of M2.3 and implementation approval.
+## Integrated release
+
+The integrated program started at `04f26a6`. M2.2 passed 66 automated tests and nine interactive Windows 11 checks. The preserved baseline passed 92 Python tests, including the offline wheel probe.
+
+- [x] WP1. Page breaks, headers, footers, page numbering, cell merge/split, and print layout regression tests.
+- [x] WP2. Integer, decimal and record reference fields, record binding, and conditional paragraphs.
+- [x] WP3. Autosaved drafts, stale-save detection, immutable publishing, and version comparison in Templates.
+- [x] WP4. Schema-driven forms with company-scoped record selection, overrides, and Design Mode round trips.
+- [x] WP5. One resolved PDF pipeline for preview and export. A4 portrait, A5 landscape, Chinese and Malay, images, and multipage tables are exercised in Qt.
+- [x] WP6. Searchable, immutable document snapshots with checksum verification, deferred PDF loading, export tracking, archiving, and reuse.
+- [x] WP7. Ten editable starter designs and a separate fictional acceptance workspace.
+- [x] WP8. Decimal draft payroll, effective-dated schedule boundaries, auditable adjustments, revision snapshots, and draft payslips. Final approval is blocked pending verified statutory adapters.
+- [x] WP9. Local sign-in and roles, encrypted backup and clean-folder restore, PyInstaller build configuration, and x64 Windows MSI authoring.
+- [x] WP10. Automated rental, offer, draft payslip, and custom-template journeys through Qt with the Windows manual checklist below.
+
+### Release limitations
+
+- Statutory payroll approval stays blocked while verified EPF, SOCSO, EIS and PCB/MTD adapters are unavailable. The draft calculations show the missing amounts and exclude them from estimated totals.
+- The release includes password-protected backups. The live workspace and exported copies rely on Windows filesystem protection.
+- Design canvas page guides are approximate. The Fill Mode PDF preview is the export source. Font coverage depends on the installed Windows fonts.
+- Starter wording and signature lines are editable illustrations. The package is unsigned.
+
+### Integrated release Windows 11 manual acceptance
+
+1. Install the x64 MSI and launch the sample workspace with the [README command](README.md#windows-11-acceptance). Create a test owner account. Verify the active company begins with **DEMO** and the dashboard shows two tenants, two employees, and three saved documents. Test offline.
+2. **Rental agreement.** Choose **New Rental Agreement**, select Fictional Tenant A, and verify the name, identification, stall, rent, deposit, and start date. Add a line of additional terms. Preview the A4 PDF, save it in History, and export it. Select the saved record using its document number and choose **Reuse values**. Change the rent, then preview and save. Open the original and verify its rent and document number stayed the same.
+3. **Employee offer.** Choose **New Offer Letter**, select Fictional Employee A, and check the name, position, monthly basic salary, and start date. Enter probation, working hours, and notice. Choose **Edit design**, adjust a clause, publish, return to the filled values, and choose the newer version. Save and export the resulting offer letter. Search History by the employee name.
+4. **Draft payslip.** Choose **New Payslip**, select Fictional Employee A and a payroll month, and add earnings and an advance. Calculate the draft. Check the gross and estimated net amounts against those entries. Verify **Check approval** names the missing rules and blocks approval. Save a draft revision, preview the draft payslip, and save it to History. Load the draft as a new revision, change an amount, and verify the first revision and PDF are unchanged.
+5. **Custom document.** Open Templates, choose **New template**, then **Edit design**. Add a heading, table, and local PNG or JPEG. Create a required currency field, insert it twice, and apply an optional paragraph condition to a second field. Insert a page break and enable a page number. Publish the design. Fill it, confirm `15.001` is rejected, then use `15.25`. Inspect the print preview, save and export. Reuse the captured values from History.
+6. Restart using the same sample directory and confirm template drafts, published versions, history, and payroll revisions persist. Sign in as a test clerk and confirm payroll and employee history are restricted.
+7. Sign back in as owner. Create and verify an encrypted backup. Restore it into a new folder, open the restored workspace, and check that the company, records, PDF exports from History, and managed images are available.
+
+Manual Windows 11 release acceptance is pending. Automated verification uses a separate fictional workspace.
 

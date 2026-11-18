@@ -2,7 +2,16 @@ export const fieldTypes = {
   text: "Text", multiline: "Multiline Text", number: "Number", currency: "Currency (MYR)",
   date: "Date", date_range: "Date Range", dropdown: "Dropdown", checkbox: "Checkbox",
   boolean: "Boolean", phone: "Phone", email: "Email", address: "Address",
+  integer: "Integer", decimal: "Decimal", tenant_reference: "Tenant reference",
+  employee_reference: "Employee reference", company_reference: "Company reference",
 };
+export const bindingGroups = {
+  company: ["name", "registration_number", "address", "phone", "email"],
+  tenant: ["name", "identification_number", "phone", "address", "stall_number",
+    "rental_type", "rental_amount", "deposit", "start_date", "end_date"],
+  employee: ["name", "employee_number", "position", "basic_salary", "start_date", "phone", "email", "address"],
+};
+export const bindings = Object.entries(bindingGroups).flatMap(([group, properties]) => properties.map((key) => group + "." + key));
 export type FieldType = keyof typeof fieldTypes;
 type DateRange = { start: string; end: string };
 export type FieldDefinition = {
@@ -10,11 +19,14 @@ export type FieldDefinition = {
   default: string | boolean | DateRange | null;
   validation: { min_length?: number; max_length?: number; min?: string; max?: string; options?: string[] };
   formatting: { style?: string; decimals?: number };
+  description?: string | null;
+  binding?: string | null;
 };
 
 export const fieldIdPattern = /^[0-9a-f]{32}$/;
 export const textTypes = new Set(["text", "multiline", "phone", "email", "address"]);
-export const numericTypes = new Set(["number", "currency"]);
+export const numericTypes = new Set(["number", "integer", "decimal", "currency"]);
+export const referenceTypes = new Set(["tenant_reference", "employee_reference", "company_reference"]);
 export const dateTypes = new Set(["date", "date_range"]);
 export const flagTypes = new Set(["checkbox", "boolean"]);
 
@@ -45,6 +57,10 @@ function string(value: unknown, message: string): string {
 function decimal(value: unknown, kind: string): bigint {
   const fraction = kind === "currency" ? 2 : 6;
   const raw = string(value, "Enter a decimal value.");
+  if (kind === "integer") {
+    if (!/^-?[0-9]{1,15}$/.test(raw)) throw new Error("Enter a whole number.");
+    return BigInt(raw);
+  }
   if (!new RegExp("^-?[0-9]{1,15}(?:\\.[0-9]{1," + fraction + "})?$").test(raw)) {
     throw new Error("Enter a decimal value with up to " + fraction + " decimal places.");
   }
@@ -71,7 +87,8 @@ function bounds<T extends bigint | number | string>(low: T | undefined, high: T 
 }
 
 export function parseField(value: unknown): FieldDefinition {
-  const field = object(value, ["id", "key", "label", "type", "required", "default", "validation", "formatting"]);
+  const field = object(value, ["id", "key", "label", "type", "required", "default", "validation", "formatting",
+    "description", "binding"]);
   if (typeof field.id !== "string" || !fieldIdPattern.test(field.id)) throw new Error("Invalid field ID.");
   if (typeof field.key !== "string" || !/^[a-z][a-z0-9_]{0,63}$/.test(field.key)) {
     throw new Error("Use a lowercase letter first, followed by lowercase letters, digits or underscores.");
@@ -82,15 +99,25 @@ export function parseField(value: unknown): FieldDefinition {
   if (typeof field.type !== "string" || !Object.hasOwn(fieldTypes, field.type) || typeof field.required !== "boolean"
       || !Object.hasOwn(field, "default")) throw new Error("Invalid field type or configuration.");
   const kind = field.type as FieldType;
+  if ("description" in field && field.description !== null && (typeof field.description !== "string"
+      || Array.from(field.description).length > 400)) throw new Error("Enter a description of up to 400 characters.");
+  if ("binding" in field && field.binding !== null && (typeof field.binding !== "string"
+      || !bindings.includes(field.binding) || referenceTypes.has(kind))) throw new Error("Unsupported record binding.");
   const allowed = textTypes.has(kind) ? ["min_length", "max_length"] : numericTypes.has(kind) || dateTypes.has(kind)
     ? ["min", "max"] : kind === "dropdown" ? ["options"] : [];
   const rules = object(field.validation, allowed);
   const format = object(field.formatting, ["style", "decimals"]);
   if ("style" in format && !displayStyles(kind).some(([style]) => style === format.style)) throw new Error("Unsupported display style.");
-  if ("decimals" in format && (kind !== "number" || !length(format.decimals, 6))) throw new Error("Enter 0–6 display decimals for Number.");
+  if ("decimals" in format && (!["number", "decimal"].includes(kind) || !length(format.decimals, 6))) {
+    throw new Error("Enter 0–6 display decimals for Number or Decimal.");
+  }
 
   const initial = field.default;
-  if (flagTypes.has(kind)) {
+  if (referenceTypes.has(kind)) {
+    if (initial !== null && (typeof initial !== "string" || !/^[1-9][0-9]{0,15}$/.test(initial))) {
+      throw new Error("Enter a valid record ID or leave the default blank.");
+    }
+  } else if (flagTypes.has(kind)) {
     if (initial !== null && typeof initial !== "boolean") throw new Error("Choose a boolean default.");
   } else if (kind === "date_range" || kind === "date") {
     const defaults = [];

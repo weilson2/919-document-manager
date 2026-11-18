@@ -15,7 +15,10 @@ export type PageSettings = Record<Margin, number> & {
   orientation: "portrait" | "landscape";
 };
 export type VisualDocument = { schema_version: 2; document: JSONContent; page_settings: PageSettings };
-export type FieldDocument = Omit<VisualDocument, "schema_version"> & { schema_version: 3; fields: FieldDefinition[] };
+export type PrintSettings = { header: string; footer: string; page_numbers: boolean; company_logo?: boolean };
+export type FieldDocument = Omit<VisualDocument, "schema_version"> & {
+  schema_version: 3; fields: FieldDefinition[]; print_settings?: PrintSettings;
+};
 export type SessionBinding = { company_id: number; session_id: string };
 export type EditorRequest =
   | { method: "open"; protocol_version: 1; schema_version: 3 }
@@ -24,13 +27,23 @@ export type EditorRequest =
       protocol_version: 1;
       document: FieldDocument;
     })
-  | (SessionBinding & { method: "import_image"; protocol_version: 1 });
+  | (SessionBinding & {
+      method: "save_design" | "publish_design";
+      protocol_version: 1;
+      revision: number;
+      document: FieldDocument;
+    })
+  | (SessionBinding & { method: "import_image" | "mark_dirty"; protocol_version: 1 });
 
-const errors = ["invalid_request", "session_mismatch", "session_closed", "image_cancelled", "invalid_image", "image_unavailable"] as const;
+const errors = ["invalid_request", "session_mismatch", "session_closed", "image_cancelled", "invalid_image",
+  "image_unavailable", "design_conflict", "design_unavailable"] as const;
 type ErrorCode = (typeof errors)[number];
 export type EditorResponse =
-  | (SessionBinding & { ok: true; protocol_version: 1; document: EditorDocument | VisualDocument | FieldDocument })
+  | (SessionBinding & { ok: true; protocol_version: 1; document: EditorDocument | VisualDocument | FieldDocument;
+    design_revision?: number })
+  | (SessionBinding & { ok: true; protocol_version: 1; design_revision: number; published_version: number | null })
   | (SessionBinding & { ok: true; protocol_version: 1; asset_id: string })
+  | (SessionBinding & { ok: true; protocol_version: 1; dirty: true })
   | { ok: false; protocol_version: 1; error: ErrorCode };
 
 function record(value: unknown): Record<string, unknown> {
@@ -99,6 +112,19 @@ export function parseVisualDocument(value: unknown): VisualDocument | FieldDocum
   const version = envelope.schema_version;
   const keys = ["schema_version", "document", "page_settings"];
   if (version === 3) keys.push("fields");
+  let print_settings: PrintSettings | undefined;
+  if (version === 3 && Object.hasOwn(envelope, "print_settings")) {
+    keys.push("print_settings");
+    const settings = record(envelope.print_settings);
+    if (!Object.keys(settings).every((key) => ["header", "footer", "page_numbers", "company_logo"].includes(key))
+        || ["header", "footer"].some((key) => Object.hasOwn(settings, key)
+          && (typeof settings[key] !== "string" || Array.from(settings[key] as string).length > 160))
+        || ("page_numbers" in settings && typeof settings.page_numbers !== "boolean")
+        || ("company_logo" in settings && typeof settings.company_logo !== "boolean")) {
+      throw new Error("Invalid print settings");
+    }
+    print_settings = settings as PrintSettings;
+  }
   if (!keysMatch(envelope, keys) || (version !== 2 && version !== 3)
       || record(envelope.document).type !== "doc") {
     throw new Error("Unsupported document schema");
@@ -109,11 +135,19 @@ export function parseVisualDocument(value: unknown): VisualDocument | FieldDocum
   function walk(value: unknown, depth: number, parent?: unknown): void {
     const node = record(value);
     const isField = version === 3 && node.type === "field";
+    const isPageBreak = version === 3 && node.type === "pageBreak" && parent === "doc" && keysMatch(node, ["type"]);
     if (depth > 24 || ++count > 8000 || Object.keys(node).some((key) => !nodeKeys.has(key))
-        || typeof node.type !== "string" || (!visualNodes.has(node.type) && !isField)) {
+        || typeof node.type !== "string" || (!visualNodes.has(node.type) && !isField && !isPageBreak)) {
       throw new Error("Invalid document node");
     }
-    if (node.attrs !== undefined) record(node.attrs);
+    if (node.attrs !== undefined) {
+      const attrs = record(node.attrs);
+      const condition = attrs.showWhenFieldId;
+      if (condition !== undefined && condition !== null && (version !== 3 || typeof condition !== "string"
+          || !fieldIds.has(condition) || (node.type !== "paragraph" && node.type !== "heading"))) {
+        throw new Error("Invalid field for a conditional paragraph");
+      }
+    }
     if (isField) {
       const attrs = record(node.attrs);
       const keys = Object.hasOwn(node, "marks") ? ["type", "attrs", "marks"] : ["type", "attrs"];
@@ -142,7 +176,8 @@ export function parseVisualDocument(value: unknown): VisualDocument | FieldDocum
   }
   walk(envelope.document, 0);
   const base = { document: envelope.document as JSONContent, page_settings: parsePageSettings(envelope.page_settings) };
-  return version === 3 ? { ...base, schema_version: 3, fields } : { ...base, schema_version: 2 };
+  return version === 3 ? { ...base, schema_version: 3, fields,
+    ...(print_settings ? { print_settings } : {}) } : { ...base, schema_version: 2 };
 }
 
 export function parseResponse(raw: unknown): EditorResponse {
@@ -158,13 +193,25 @@ export function parseResponse(raw: unknown): EditorResponse {
       && typeof response.session_id === "string" && /^[0-9a-f]{32}$/.test(response.session_id)) {
     const shared = ["ok", "protocol_version", "company_id", "session_id"];
     const binding = { ok: true, protocol_version: 1, company_id: response.company_id, session_id: response.session_id } as const;
+    if (keysMatch(response, [...shared, "dirty"]) && response.dirty === true) {
+      return { ...binding, dirty: true };
+    }
     if (keysMatch(response, [...shared, "asset_id"]) && typeof response.asset_id === "string"
         && /^[0-9a-f]{64}$/.test(response.asset_id)) {
       return { ...binding, asset_id: response.asset_id };
     }
-    if (keysMatch(response, [...shared, "document"])) {
+    const validRevision = typeof response.design_revision === "number"
+      && Number.isSafeInteger(response.design_revision) && response.design_revision >= 0;
+    if (keysMatch(response, [...shared, "design_revision", "published_version"]) && validRevision
+        && (response.published_version === null || (typeof response.published_version === "number"
+          && Number.isSafeInteger(response.published_version) && response.published_version > 0))) {
+      return { ...binding, design_revision: response.design_revision as number, published_version: response.published_version };
+    }
+    const savedDesign = keysMatch(response, [...shared, "document", "design_revision"]) && validRevision;
+    if (savedDesign || keysMatch(response, [...shared, "document"])) {
       const document = record(response.document);
-      return { ...binding, document: document.schema_version === 1 ? parseLegacyDocument(document) : parseVisualDocument(document) };
+      return { ...binding, document: document.schema_version === 1 ? parseLegacyDocument(document) : parseVisualDocument(document),
+        ...(savedDesign ? { design_revision: response.design_revision as number } : {}) };
     }
   }
   throw new Error("Invalid response");

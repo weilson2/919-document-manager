@@ -173,3 +173,115 @@ class BusinessActivity(CompanyRecord, Base):
     subject_type: Mapped[str] = mapped_column(String(30))
     subject_id: Mapped[int]
     subject_label: Mapped[str] = mapped_column(String(200))
+
+
+class TemplateDraft(Base):
+    __tablename__ = "template_drafts"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["company_id", "template_id"], ["templates.company_id", "templates.id"],
+            name="fk_draft_company_template", ondelete="RESTRICT",
+        ),
+        CheckConstraint("revision > 0", name="ck_draft_revision"),
+    )
+
+    company_id: Mapped[int] = mapped_column(primary_key=True)
+    template_id: Mapped[int] = mapped_column(primary_key=True)
+    revision: Mapped[int]
+    document_json: Mapped[dict] = mapped_column(JSON)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp()
+    )
+
+
+class GeneratedDocument(ArchivableRecord, Base):
+    __tablename__ = "generated_documents"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["company_id", "template_id", "version_number"],
+            ["template_versions.company_id", "template_versions.template_id", "template_versions.version_number"],
+            name="fk_document_company_version", ondelete="RESTRICT",
+        ),
+        UniqueConstraint("company_id", "id", name="uq_generated_company_id"),
+        UniqueConstraint("company_id", "number", name="uq_generated_number"),
+        Index("ix_generated_company_archive", "company_id", "archived_at"),
+    )
+
+    template_id: Mapped[int]
+    version_number: Mapped[int]
+    number: Mapped[str] = mapped_column(String(45))
+    category_key: Mapped[str] = mapped_column(String(32))
+    title: Mapped[str] = mapped_column(String(160))
+    subject_kind: Mapped[str | None] = mapped_column(String(20))
+    subject_id: Mapped[int | None]
+    subject_name: Mapped[str] = mapped_column(String(200))
+    input_values: Mapped[dict] = mapped_column(JSON)
+    resolved_values: Mapped[dict] = mapped_column(JSON)
+    pdf: Mapped[bytes] = mapped_column(LargeBinary)
+    checksum: Mapped[str] = mapped_column(String(64))
+
+
+class DocumentExport(CompanyRecord, Base):
+    __tablename__ = "document_exports"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["company_id", "document_id"], ["generated_documents.company_id", "generated_documents.id"],
+            name="fk_export_company_document", ondelete="RESTRICT",
+        ),
+        Index("ix_exports_company_document", "company_id", "document_id"),
+    )
+
+    document_id: Mapped[int]
+    filename: Mapped[str] = mapped_column(String(260))
+    byte_count: Mapped[int]
+    checksum: Mapped[str] = mapped_column(String(64))
+
+
+class LocalUser(Base):
+    __tablename__ = "local_users"
+    __table_args__ = (
+        CheckConstraint("role IN ('owner', 'payroll', 'clerk')", name="ck_local_user_role"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(60), unique=True)
+    password_hash: Mapped[bytes] = mapped_column(LargeBinary)
+    password_salt: Mapped[bytes] = mapped_column(LargeBinary)
+    role: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp())
+
+
+class PayrollRun(CompanyRecord, Base):
+    __tablename__ = "payroll_runs"
+    __table_args__ = (
+        UniqueConstraint("company_id", "employee_id", "period", "revision", name="uq_payroll_run_revision"),
+        UniqueConstraint("company_id", "id", name="uq_payroll_company_id"),
+        CheckConstraint("revision > 0", name="ck_payroll_run_revision"),
+        CheckConstraint("status IN ('draft', 'approved')", name="ck_payroll_status"),
+    )
+
+    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id", ondelete="RESTRICT"))
+    actor_id: Mapped[int | None] = mapped_column(ForeignKey("local_users.id", ondelete="RESTRICT"))
+    period: Mapped[date] = mapped_column(Date)
+    revision: Mapped[int]
+    status: Mapped[str] = mapped_column(String(12))
+    inputs: Mapped[dict] = mapped_column(JSON)
+    result: Mapped[dict] = mapped_column(JSON)
+    employee_snapshot: Mapped[dict] = mapped_column(JSON)
+
+
+class PayrollDocument(Base):
+    __tablename__ = "payroll_documents"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["company_id", "document_id"], ["generated_documents.company_id", "generated_documents.id"],
+            name="fk_payroll_document_history", ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["company_id", "run_id"], ["payroll_runs.company_id", "payroll_runs.id"],
+            name="fk_payroll_document_run", ondelete="RESTRICT",
+        ),
+    )
+    company_id: Mapped[int] = mapped_column(primary_key=True)
+    document_id: Mapped[int] = mapped_column(primary_key=True)
+    run_id: Mapped[int]

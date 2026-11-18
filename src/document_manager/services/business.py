@@ -13,6 +13,7 @@ from document_manager.persistence.models import (
     Employee,
     Template,
     TemplateCategory,
+    TemplateDraft,
     TemplateVersion,
     Tenant,
 )
@@ -21,11 +22,22 @@ from document_manager.persistence.repositories import (
     RecordRepository,
     TemplateRepository,
 )
+from document_manager.services.auth import require_sensitive
+from document_manager.services.designs import (
+    DesignService,
+    checked_document,
+    latest_design_version,
+    uses_employee_data,
+)
+from document_manager.services.documents import DocumentService
 from document_manager.services.errors import (
     BusinessError,
     DuplicateRecord,
     RecordUnavailable,
 )
+from document_manager.services.fill import FillService
+from document_manager.services.payroll import PayrollService
+from document_manager.services.starters import install_starters
 from document_manager.services.validation import (
     CategoryInput,
     EmployeeInput,
@@ -70,24 +82,36 @@ class DashboardSummary:
 
 
 class BusinessService:
-    def __init__(self, engine: Engine):
+    def __init__(self, engine: Engine, identity=None):
         self._engine = engine
+        self.identity = identity
+        self.designs = DesignService(engine, identity)
+        self.documents = DocumentService(engine, identity)
+        self.fill = FillService(engine, identity)
+        self.payroll = PayrollService(engine, identity)
+
+    def install_starters(self, company_id: int) -> None:
+        install_starters(self._engine, company_id)
 
     def dashboard(self, company_id: int) -> DashboardSummary:
         with Session(self._engine) as session:
             session.connection().exec_driver_sql("BEGIN")
             return DashboardSummary(
                 templates=RecordRepository(session, company_id, Template).count(),
-                documents=None,
+                  documents=self.documents.count(session, company_id),
                 active_employees=RecordRepository(session, company_id, Employee).count("active"),
                 active_tenants=RecordRepository(session, company_id, Tenant).count("active"),
-                activity=ActivityRepository(session, company_id).recent(),
+                  activity=ActivityRepository(session, company_id).recent(
+                      omit_sensitive=self.identity is not None and not self.identity.sensitive_access,
+                  ),
             )
 
     def list_records(
         self, kind: RecordKind, company_id: int, *, search: str = "", archived: bool = False,
         status: str | None = None, category_id: int | None = None, record_type: str | None = None,
     ) -> list[ArchivableRecord]:
+        if kind == "employee":
+            require_sensitive(self.identity)
         spec = RECORDS[kind]
         filters = {}
         if status is not None:
@@ -105,6 +129,8 @@ class BusinessService:
             )
 
     def save_record(self, kind: RecordKind, company_id: int, payload: dict, record_id: int | None = None) -> int:
+        if kind == "employee":
+            require_sensitive(self.identity)
         spec = RECORDS[kind]
         values = spec.schema.model_validate(payload).model_dump()
         try:
@@ -135,6 +161,8 @@ class BusinessService:
             raise
 
     def set_archived(self, kind: RecordKind, company_id: int, record_id: int, *, archived: bool) -> None:
+        if kind == "employee":
+            require_sensitive(self.identity)
         with write_session(self._engine) as session:
             records = RecordRepository(session, company_id, RECORDS[kind].model)
             record = self._require_record(records, record_id)
@@ -172,6 +200,16 @@ class BusinessService:
                 if not templates.name_used(name):
                     break
             template = records.add({"name": name, "description": source.description, "category_id": source.category_id})
+            draft = session.get(TemplateDraft, (company_id, source.id))
+            version = latest_design_version(session, company_id, source.id)
+            if (version is not None and version.metadata_snapshot.get("sensitive")
+                    or draft is not None and uses_employee_data(checked_document(draft.document_json))):
+                require_sensitive(self.identity)
+            if draft is not None or version is not None:
+                session.add(TemplateDraft(
+                    company_id=company_id, template_id=template.id, revision=1,
+                    document_json=(draft if draft is not None else version).document_json,
+                ))
             ActivityRepository(session, company_id).record("duplicated", "template", template.id, template.name)
             return template.id
 
@@ -199,7 +237,10 @@ class BusinessService:
 
     def list_template_versions(self, company_id: int, template_id: int) -> list[TemplateVersion]:
         with Session(self._engine) as session:
-            return list(session.scalars(TemplateRepository(session, company_id).versions(template_id)))
+            rows = list(session.scalars(TemplateRepository(session, company_id).versions(template_id)))
+            if any(version.metadata_snapshot.get("sensitive") for version in rows):
+                require_sensitive(self.identity)
+            return rows
 
     @staticmethod
     def _require_record(records: RecordRepository, record_id: int, archived: bool | None = None):

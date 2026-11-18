@@ -11,14 +11,27 @@ FieldId = Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")]
 FieldType = Literal[
     "text", "multiline", "number", "currency", "date", "date_range",
     "dropdown", "checkbox", "boolean", "phone", "email", "address",
+    "integer", "decimal", "tenant_reference", "employee_reference", "company_reference",
+]
+FieldBinding = Literal[
+    "company.name", "company.registration_number", "company.address", "company.phone", "company.email",
+    "tenant.name", "tenant.identification_number", "tenant.phone", "tenant.address", "tenant.stall_number",
+    "tenant.rental_type", "tenant.rental_amount", "tenant.deposit", "tenant.start_date", "tenant.end_date",
+    "employee.name", "employee.employee_number", "employee.position", "employee.basic_salary",
+    "employee.start_date", "employee.phone", "employee.email", "employee.address",
 ]
 TEXT_TYPES = {"text", "multiline", "phone", "email", "address"}
-NUMERIC_TYPES = {"number", "currency"}
+NUMERIC_TYPES = {"number", "integer", "decimal", "currency"}
 DATE_TYPES = {"date", "date_range"}
 FLAG_TYPES = {"checkbox", "boolean"}
+REFERENCE_TYPES = {"tenant_reference", "employee_reference", "company_reference"}
 
 
 def decimal_value(value: str, kind: str) -> Decimal:
+    if kind == "integer":
+        if not re.fullmatch(r"-?[0-9]{1,15}", value):
+            raise ValueError("Enter a whole number.")
+        return Decimal(value)
     fraction = 2 if kind == "currency" else 6
     if not re.fullmatch(rf"-?[0-9]{{1,15}}(?:\.[0-9]{{1,{fraction}}})?", value):
         raise ValueError(f"Enter a {kind} with up to {fraction} decimal places.")
@@ -69,6 +82,17 @@ class FieldDefinition(StrictModel):
     default: Annotated[str, Field(max_length=4000)] | bool | DateRange | None
     validation: FieldRules
     formatting: FieldFormatting
+    description: Annotated[str, Field(max_length=400)] | None = None
+    binding: FieldBinding | None = None
+
+    def validate_value(self, value):
+        if value is None or isinstance(value, str) and not value.strip():
+            if self.required:
+                raise ValueError("Enter a value for this required field.")
+            return None
+        payload = self.model_dump(exclude_unset=True)
+        payload["default"] = value
+        return self.model_validate(payload).default
 
     @model_validator(mode="after")
     def check_configuration(self):
@@ -83,6 +107,8 @@ class FieldDefinition(StrictModel):
         if rules.model_fields_set - allowed or any(getattr(rules, key) is None for key in rules.model_fields_set):
             raise ValueError("Unsupported validation rule for this field type.")
         self._check_format()
+        if kind in REFERENCE_TYPES and self.binding is not None:
+            raise ValueError("A record selector cannot be bound to a record property.")
         if kind in FLAG_TYPES:
             if value is not None and type(value) is not bool:
                 raise ValueError("The default must be a boolean.")
@@ -105,7 +131,10 @@ class FieldDefinition(StrictModel):
 
     def _check_string(self, value):
         kind, rules = self.type, self.validation
-        if kind in NUMERIC_TYPES | {"date"}:
+        if kind in REFERENCE_TYPES:
+            if value is not None and not re.fullmatch(r"[1-9][0-9]{0,15}", value):
+                raise ValueError("Choose an available record.")
+        elif kind in NUMERIC_TYPES | {"date"}:
             convert = calendar_date if kind == "date" else lambda raw: decimal_value(raw, kind)
             check_bounds(self._bound(rules.min, convert), self._bound(rules.max, convert),
                          [] if value is None else [convert(value)])
@@ -138,5 +167,5 @@ class FieldDefinition(StrictModel):
         )
         if "style" in formatting.model_fields_set and formatting.style not in styles:
             raise ValueError("Unsupported display style.")
-        if "decimals" in formatting.model_fields_set and (kind != "number" or formatting.decimals is None):
-            raise ValueError("Decimal display is available for Number fields.")
+        if "decimals" in formatting.model_fields_set and (kind not in {"number", "decimal"} or formatting.decimals is None):
+            raise ValueError("Decimal display is available for Number and Decimal fields.")

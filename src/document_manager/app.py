@@ -6,15 +6,18 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from PySide6.QtCore import QCoreApplication, QStandardPaths, Qt
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
 from document_manager.editor.web import register_editor_scheme
 from document_manager.persistence.database import (
     create_database_engine,
     upgrade_database,
 )
+from document_manager.services.auth import AuthService
 from document_manager.services.business import BusinessService
 from document_manager.services.settings import SettingsService
+from document_manager.ui.acceptance_workspace import create_acceptance_workspace
+from document_manager.ui.local_login import LocalLogin
 from document_manager.ui.main_window import MainWindow
 
 APP_NAME = "919 Document Manager"
@@ -25,11 +28,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=APP_NAME)
     parser.add_argument("--data-dir", type=Path, help="Use a separate local data directory.")
     parser.add_argument("--check", action="store_true", help="Initialize and check local storage, then exit.")
+    parser.add_argument("--sample", action="store_true", help="Create fictional acceptance data in a new --data-dir.")
     args = parser.parse_args(argv)
+    if args.sample and args.data_dir is None:
+        parser.error("--sample requires an explicit new --data-dir")
     QCoreApplication.setApplicationName(APP_NAME)
-    if not args.check:
+    if not args.check or args.sample:
         register_editor_scheme()
-    app = None if args.check else QApplication([])
+    app = QApplication([]) if not args.check or args.sample else None
     log_path = None
 
     with ExitStack() as resources:
@@ -41,7 +47,7 @@ def main(argv: list[str] | None = None) -> int:
                     raise RuntimeError("The operating system did not provide a local application data directory.")
                 data_dir = Path(default_dir)
             data_dir = data_dir.resolve()
-            data_dir.mkdir(parents=True, exist_ok=True)
+            data_dir.mkdir(parents=True, exist_ok=not args.sample)
             log_path = data_dir / "application.log"
             handler = RotatingFileHandler(log_path, maxBytes=1_000_000, backupCount=3, encoding="utf-8")
             handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
@@ -59,14 +65,22 @@ def main(argv: list[str] | None = None) -> int:
             upgrade_database(engine)
             settings = SettingsService(engine)
             company_id = settings.get_default_company_id()
+            if args.sample:
+                create_acceptance_workspace(settings, BusinessService(engine), company_id)
             profile = settings.get_company(company_id)
             logger.info("Local database ready")
 
             if args.check:
-                print(f"Local database ready: {database}")
+                if sys.stdout is not None:
+                    print(f"Local database ready: {database}")
                 return 0
 
-            window = MainWindow(settings, BusinessService(engine), company_id, profile, data_dir)
+            auth = AuthService(engine)
+            login = LocalLogin(auth)
+            if login.exec() != QDialog.DialogCode.Accepted:
+                return 0
+            business = BusinessService(engine, login.identity)
+            window = MainWindow(settings, business, company_id, profile, data_dir, starter_designs=True, auth=auth)
             window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
             window.show()
         except Exception:
@@ -76,8 +90,9 @@ def main(argv: list[str] | None = None) -> int:
                 message += f"\nSee the application log if available:\n{log_path}"
             else:
                 message += "\nCheck that the data folder is accessible."
-            if app is None:
-                print(message, file=sys.stderr)
+            if args.check:
+                if sys.stderr is not None:
+                    print(message, file=sys.stderr)
             else:
                 dialog = QMessageBox(QMessageBox.Icon.Critical, APP_NAME, message)
                 dialog.setTextFormat(Qt.TextFormat.PlainText)
