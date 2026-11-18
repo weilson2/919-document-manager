@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "document-manager-919"
+version = "0.1.0"
+description = "Offline Windows desktop workspace for business documents"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "PySide6==6.12.0",
+    "SQLAlchemy==2.0.58",
+    "alembic==1.20.1",
+    "pydantic==2.14.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.2.0", "pytest-qt==4.5.0", "build==1.6.1"]
+
+[project.gui-scripts]
+919-document-manager = "document_manager.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"document_manager.persistence.migrations" = ["script.py.mako"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+qt_api = "pyside6"

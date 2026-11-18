@@ -1,0 +1,11 @@
+/.venv/
+/.build-check/
+/dist/
+/build/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+*.sqlite3
+*.sqlite3-*
+*.log
+*.log.[0-9]*

@@ -1,0 +1,2 @@
+include PROGRESS.md Start-DocumentManager.ps1
+recursive-include tests *.py
