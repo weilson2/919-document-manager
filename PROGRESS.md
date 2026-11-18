@@ -119,3 +119,36 @@ The workspace already contained an independent POS application, its database, an
 - The foundation handles plain text and paragraphs. It applies size limits and keeps edits only in the current company session.
 - The visual editing panels, formatting, pagination, dynamic fields, and draft and publish workflows are planned for M2.2 through M2.4.
 
+## M2.2 · Visual Editing
+
+**Status:** Awaiting acceptance.
+
+### Delivered
+
+- Added the editing toolbar, outline, insertion and page navigation, A4/A5 canvas, and properties inspector.
+- Added rich text, headings, lists, editable tables, local images, font and color controls, paragraph spacing and alignment, zoom, shortcuts, and undo/redo.
+- Page guides and preview sheets are calculated from layout. Breaks keep text lines, table rows and row spans, and figures intact where the available page size allows. Oversized content stays visible and triggers a warning.
+- Added visual document schema version 2. The original version 1 session and verification contract remains available. Image import uses the company-bound bridge, a native file picker, PNG/JPEG validation, and a managed local asset directory.
+
+### Verification completed
+
+- All 66 tests passed on Windows 11 x64. The real Qt renderer tests exercised formatting and keyboard input, editable tables, valid and invalid images, Unicode serialization, multi-page layout, zoom stability, preview, and blocked network and cross-company image requests.
+- The installed-wheel renderer also passed with pip's index disabled, Node/npm removed from PATH, and external networking disabled for the browser probe.
+- TypeScript checks, bundle reproducibility, Python lint and dependency checks, and the source distribution and wheel builds passed.
+
+### Windows 11 manual acceptance
+
+1. From `919_DOCUMENT_MANAGER`, launch with `.\.venv\Scripts\python.exe -m document_manager --data-dir "$env:TEMP\919-document-manager-m22"` and open **Document Editor**.
+2. Type a heading and some Unicode text. Check the outline, apply bold, italic, underline, font size, text color and spacing, and use **Ctrl+Z** to undo a change.
+3. Insert a table, edit cells, and add and delete a row and column. Open **Preview** after adding enough text and rows for several pages. Use the page list and change zoom. Verify that the logical page breaks stay in place and that rows and text are visible.
+4. Change paper size, orientation, and margins. Insert a PNG or JPEG with the file picker and change its width and description. Try a tall image and check that an oversized warning appears while the image remains visible. An SVG or invalid image should be rejected.
+5. Select **Verify document** and expect **Document structure verified**. Switch companies and confirm that the new editor opens blank. Repeat with the network disconnected to confirm offline startup.
+
+### Current limitations
+
+- Preview uses Chromium's measured layout and has been verified for the cases above. It is a visual preview for this editor.
+- Undo/redo applies to document content and formatting. Page setup is adjusted separately. Documents remain temporary, and imported asset files remain in the company workspace.
+- Dynamic fields, draft persistence, publishing, and final PDF export are future milestones. Interactive Windows 11 acceptance is pending.
+
+M2.3 is pending acceptance of M2.2.
+

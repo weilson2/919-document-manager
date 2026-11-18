@@ -1,15 +1,19 @@
 import logging
+from pathlib import Path
 
 from PySide6.QtCore import QUrl
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEngineProfile, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFileDialog, QVBoxLayout, QWidget
 
 from document_manager.editor.bridge import EditorBridge, EditorSession
+from document_manager.editor.images import import_image
+from document_manager.editor.visual_schema import PageSettings
 from document_manager.editor.web import (
     ENTRY_URL,
     SCHEME,
+    EditorImages,
     EditorRequestPolicy,
     EditorResources,
     EditorWebPage,
@@ -20,9 +24,12 @@ logger = logging.getLogger(__name__)
 
 
 class DocumentEditor(QWidget):
-    def __init__(self):
+    def __init__(self, data_dir: Path | None):
         super().__init__()
+        self._data_dir = data_dir
         self._company_id = None
+        self._page_settings = PageSettings()
+        self._images = EditorImages()
         self._session = None
         self._page = None
         self._profile = None
@@ -32,7 +39,8 @@ class DocumentEditor(QWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.addWidget(self._status)
 
-    def set_company(self, company_id: int) -> None:
+    def set_company(self, company_id: int, page_settings: PageSettings) -> None:
+        self._page_settings = page_settings
         if company_id != self._company_id:
             self.close_session()
             self._company_id = company_id
@@ -44,7 +52,7 @@ class DocumentEditor(QWidget):
             return
         if self._profile is None:
             try:
-                resources = EditorResources(self)
+                resources = EditorResources(self._images, self)
             except OSError:
                 logger.exception("Editor resources unavailable")
                 self._status.setText("Editor files are unavailable. Reinstall 919 Document Manager and try again.")
@@ -54,7 +62,8 @@ class DocumentEditor(QWidget):
             self._view.setAccessibleName("Local document editor")
             self._layout.addWidget(self._view, 1)
             self._profile = QWebEngineProfile(self)
-            self._profile.setUrlRequestInterceptor(EditorRequestPolicy(self._profile))
+            self._profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.NoCache)
+            self._profile.setUrlRequestInterceptor(EditorRequestPolicy(self._images, self._profile))
             self._profile.installUrlSchemeHandler(SCHEME, resources)
             resources.setParent(self._profile)
             self._profile.downloadRequested.connect(lambda item: item.cancel())
@@ -64,7 +73,10 @@ class DocumentEditor(QWidget):
         previous = self._page
         page = EditorWebPage(self._profile, self._view)
         self._page = page
-        self._session = EditorSession(self._company_id)
+        company_id = self._company_id
+        self._session = EditorSession(
+            company_id, self._page_settings, lambda: self._choose_image(company_id), self._images.add,
+        )
         channel = QWebChannel(page)
         channel.registerObject("editorBridge", EditorBridge(self._session, channel))
         page.setWebChannel(channel)
@@ -91,6 +103,13 @@ class DocumentEditor(QWidget):
             self._session = None
             self._page.setWebChannel(None)
             self._view.hide()
+            self._images.clear()
+
+    def _choose_image(self, company_id: int):
+        if self._data_dir is None:
+            raise OSError("The editor workspace is unavailable.")
+        selected, _filter = QFileDialog.getOpenFileName(self, "Insert image", "", "PNG or JPEG (*.png *.jpg *.jpeg)")
+        return import_image(self._data_dir, company_id, Path(selected)) if selected else None
 
     def _on_loaded(self, page: EditorWebPage, ok: bool) -> None:
         if page is not self._page or self._session is None:

@@ -49,7 +49,7 @@ DOCUMENT_FIELDS = (
 
 
 class CompanySettings(QWidget):
-    company_saved = Signal()
+    company_saved = Signal(object)
     default_changed = Signal()
     company_created = Signal(int)
 
@@ -160,7 +160,7 @@ class CompanySettings(QWidget):
 
         self._load(profile)
         self.status.setText("Company settings saved.")
-        self.company_saved.emit()
+        self.company_saved.emit(profile)
 
     def _make_default(self) -> None:
         try:

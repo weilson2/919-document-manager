@@ -1,6 +1,6 @@
 # 919 Document Manager
 
-Offline-first Windows desktop software for Malaysian SME document administration. M2.1 adds the local visual editor foundation to the company profiles, tenant and employee registers, and template tools delivered in M1.
+Offline-first Windows desktop software for Malaysian SME document administration. M2.2 adds visual editing and page preview to the company profiles, tenant and employee registers, and template tools delivered in M1.
 
 ## Run on Windows
 
@@ -45,11 +45,13 @@ Company switching scopes business records and activity within the local workspac
 
 ## Trying the local editor
 
-Open **Document Editor** in the sidebar, wait for **Editor ready**, and enter several paragraphs. Select **Verify document** to check that the editor's structured JSON survives a round trip through Python.
+Open **Document Editor** in the sidebar and wait for **Editor ready**. Use the toolbar for headings, lists, formatting, tables, and images. The left panel holds the heading outline and page navigation. Select text or an element to adjust its typography, spacing, table, or image properties on the right. The page setup controls start from the active company's defaults.
 
-The editor uses bundled Tiptap 3 and ProseMirror in an off-the-record Qt WebEngine profile. Its request policy permits only named editor assets under a local URL scheme. The dedicated WebChannel object accepts two operations, session open and document verification. Python binds the session to the selected company. Both sides validate the versioned document and protocol payloads.
+The editable canvas uses one flowing document with page-break guides. **Preview** displays individual A4 or A5 sheets using the same measured content and margins. Zoom scales the view and preserves logical page breaks. An oversized element can expand a preview sheet and triggers a warning. Preview pagination depends on the installed fonts and Qt WebEngine's layout.
 
-M2.1 supports plain text and paragraphs in a temporary editor. Switching companies or closing the app discards the content. Later subphases add formatting, page layout, dynamic fields, and template persistence.
+The editor uses bundled Tiptap 3 and ProseMirror in an off-the-record Qt WebEngine profile. **Verify document** confirms that the versioned JSON survives a round trip through the company-bound WebChannel. **Insert image** opens the native Python file picker, accepts PNG and JPEG up to 8 MB and 4096 × 4096 pixels, and writes a PNG copy under `editor-assets/<company-id>/` in the local workspace. Only images authorized for the active editor session can load.
+
+The editor session is temporary. Switching companies or closing the app clears the document. Imported image files remain in the workspace. Dynamic fields, saving drafts, publishing, and final export are later milestones.
 
 ## Project layout
 
@@ -102,4 +104,4 @@ The npm install may require registry access. Runtime startup and Python package 
 
 Schema changes require an Alembic revision under `src/document_manager/persistence/migrations/versions`. The `migration_config` context manager supplies Alembic with a connection to an explicitly selected database. Use a disposable development database for revision generation or downgrade checks.
 
-See [PROGRESS.md](PROGRESS.md) for the M2.1 Windows acceptance checklist and current limitations.
+See [PROGRESS.md](PROGRESS.md) for the M2.2 Windows acceptance checklist and current limitations.

@@ -4,20 +4,122 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy"
-          content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+          content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
     <title>Local Document Editor</title>
     <link rel="stylesheet" href="app.css">
     <script defer src="qwebchannel.js"></script>
     <script defer src="app.js"></script>
   </head>
   <body>
-    <main class="workspace">
-      <div class="toolbar">
-        <button id="verify-document" type="button" disabled>Verify document</button>
-        <span id="editor-status" role="status">Connecting to the editor…</span>
+    <main id="workspace" class="workspace">
+      <header class="toolbar" aria-label="Document tools">
+        <fieldset id="edit-tools" disabled>
+          <div class="tool-group">
+            <button type="button" data-command="undo" title="Undo (Ctrl+Z)">Undo</button>
+            <button type="button" data-command="redo" title="Redo (Ctrl+Y)">Redo</button>
+          </div>
+          <div class="tool-group">
+            <label class="sr-only" for="block-format">Paragraph style</label>
+            <select id="block-format"><option value="0">Paragraph</option><option value="1">Heading 1</option>
+              <option value="2">Heading 2</option><option value="3">Heading 3</option></select>
+            <button type="button" data-command="bold" class="bold" aria-label="Bold" title="Bold (Ctrl+B)">B</button>
+            <button type="button" data-command="italic" class="italic" aria-label="Italic" title="Italic (Ctrl+I)">I</button>
+            <button type="button" data-command="underline" class="underline" aria-label="Underline" title="Underline (Ctrl+U)">U</button>
+            <button type="button" data-command="bullet-list">Bullets</button>
+            <button type="button" data-command="ordered-list">Numbering</button>
+          </div>
+          <div class="tool-group">
+            <label class="sr-only" for="toolbar-alignment">Alignment</label>
+            <select id="toolbar-alignment"><option value="left">Align left</option><option value="center">Center</option>
+              <option value="right">Align right</option><option value="justify">Justify</option></select>
+            <button type="button" data-command="table">Insert table</button>
+            <button type="button" data-command="image">Insert image</button>
+          </div>
+        </fieldset>
+        <div class="tool-group">
+          <label class="sr-only" for="zoom">Zoom</label>
+          <select id="zoom" disabled><option value="fit" selected>Fit width</option><option value="0.5">50%</option>
+            <option value="0.75">75%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select>
+          <button id="preview-toggle" type="button" aria-pressed="false" disabled>Preview</button>
+          <button id="verify-document" type="button" disabled>Verify document</button>
+        </div>
+      </header>
+      <div class="editor-layout">
+        <aside class="left-panel" aria-label="Document navigation">
+          <section><h2>Outline</h2><nav id="outline" aria-label="Headings"></nav></section>
+          <fieldset id="insert-tools" disabled>
+            <legend>Insert</legend>
+            <button type="button" data-command="heading">Heading</button>
+            <button type="button" data-command="table">Table</button>
+            <button type="button" data-command="image">Image</button>
+          </fieldset>
+          <section><h2>Pages</h2><nav id="page-nav" aria-label="Pages"></nav></section>
+        </aside>
+        <section id="canvas" class="canvas" aria-label="Document canvas">
+          <div id="stage" class="stage">
+            <div id="zoom-layer" class="zoom-layer">
+              <div id="edit-paper" class="paper edit-paper">
+                <div id="editor" class="editor"></div>
+                <div id="page-guides" class="page-guides" aria-hidden="true"></div>
+              </div>
+              <div id="preview-pages" class="preview-pages" hidden></div>
+            </div>
+          </div>
+        </section>
+        <aside class="properties" aria-label="Document properties">
+          <fieldset id="properties" disabled>
+            <legend class="sr-only">Document properties</legend>
+            <section><h2>Typography</h2>
+              <label>Font <select id="font-family"><option value="">Document font</option><option>Arial</option>
+                <option>Calibri</option><option>Georgia</option><option>Segoe UI</option><option>Times New Roman</option>
+                <option>Verdana</option><option>Courier New</option></select></label>
+              <label>Size <select id="font-size"><option value="">Default</option><option>8</option><option>10</option><option>11</option>
+                <option>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>24</option>
+                <option>32</option><option>48</option><option>72</option></select></label>
+              <label>Text color <input id="text-color" type="color" value="#152740"></label>
+            </section>
+            <section><h2>Paragraph</h2>
+              <label>Alignment <select id="alignment"><option value="left">Left</option><option value="center">Center</option>
+                <option value="right">Right</option><option value="justify">Justify</option></select></label>
+              <label>Line spacing <select id="line-spacing"><option value="">Default</option><option>1</option>
+                <option>1.15</option><option>1.5</option><option>2</option></select></label>
+              <label>After (pt) <input id="space-after" type="number" min="0" max="48" placeholder="Default"></label>
+            </section>
+            <section id="table-properties" hidden><h2>Table</h2>
+              <label>Borders <select id="table-borders"><option value="grid">Grid</option><option value="none">None</option></select></label>
+              <div class="property-actions">
+                <button type="button" data-command="add-row">Add row</button>
+                <button type="button" data-command="delete-row">Delete row</button>
+                <button type="button" data-command="add-column">Add column</button>
+                <button type="button" data-command="delete-column">Delete column</button>
+                <button type="button" data-command="header-row">Toggle header row</button>
+                <button type="button" data-command="delete-table">Delete table</button>
+              </div>
+            </section>
+            <section id="image-properties" hidden><h2>Image</h2>
+              <label>Width (%) <input id="image-width" type="number" min="10" max="100"></label>
+              <label>Description <input id="image-alt" maxlength="300" type="text"></label>
+              <button type="button" data-command="delete-image">Remove image</button>
+            </section>
+            <section><h2>Page setup</h2>
+              <label>Paper <select id="page-size"><option>A4</option><option>A5</option></select></label>
+              <label>Orientation <select id="orientation"><option value="portrait">Portrait</option>
+                <option value="landscape">Landscape</option></select></label>
+              <div class="margin-grid" aria-label="Margins in millimetres">
+                <label>Top (mm)<input type="number" min="0" max="60" data-margin="margin_top"></label>
+                <label>Right (mm)<input type="number" min="0" max="60" data-margin="margin_right"></label>
+                <label>Bottom (mm)<input type="number" min="0" max="60" data-margin="margin_bottom"></label>
+                <label>Left (mm)<input type="number" min="0" max="60" data-margin="margin_left"></label>
+              </div>
+            </section>
+          </fieldset>
+        </aside>
       </div>
-      <div id="editor" class="editor"></div>
-      <p class="note">Edits are temporary in M2.1.</p>
+      <footer class="status-bar">
+        <span id="editor-status" role="status">Connecting to the editor…</span>
+        <span id="layout-warning" role="status"></span>
+        <span class="session-note">Temporary editing session</span>
+      </footer>
     </main>
   </body>
 </html>

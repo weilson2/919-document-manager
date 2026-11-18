@@ -1,8 +1,8 @@
 import { Editor } from "@tiptap/core";
-import Document from "@tiptap/extension-document";
-import Paragraph from "@tiptap/extension-paragraph";
-import Text from "@tiptap/extension-text";
-import { type EditorRequest, type EditorResponse, parseDocument, parseResponse } from "./protocol";
+import { PageCanvas } from "./canvas";
+import { bindControls, element } from "./controls";
+import { editorExtensions } from "./extensions";
+import { type EditorRequest, type EditorResponse, parseResponse, parseVisualDocument } from "./protocol";
 import "./editor.css";
 
 type Bridge = { request: (payload: string, callback: (result: unknown) => void) => void };
@@ -13,9 +13,9 @@ declare const QWebChannel: new (
   ready: (channel: { objects: { editorBridge?: Bridge } }) => void,
 ) => unknown;
 
-const editorElement = document.querySelector<HTMLElement>("#editor")!;
-const statusElement = document.querySelector<HTMLElement>("#editor-status")!;
-const verifyButton = document.querySelector<HTMLButtonElement>("#verify-document")!;
+const editorElement = element("editor");
+const statusElement = element("editor-status");
+const verifyButton = element<HTMLButtonElement>("verify-document");
 const timeoutMs = 5000;
 
 function connect(): Promise<Bridge> {
@@ -36,7 +36,9 @@ function connect(): Promise<Bridge> {
 
 function request(bridge: Bridge, payload: EditorRequest): Promise<EditorResponse> {
   return new Promise((resolve, reject) => {
-    const timer = window.setTimeout(() => reject(new Error("Request timed out")), timeoutMs);
+    // Image import waits for the user to close the native file picker.
+    const timer = payload.method === "import_image" ? undefined
+      : window.setTimeout(() => reject(new Error("Request timed out")), timeoutMs);
     bridge.request(JSON.stringify(payload), (raw) => {
       window.clearTimeout(timer);
       try {
@@ -48,38 +50,69 @@ function request(bridge: Bridge, payload: EditorRequest): Promise<EditorResponse
   });
 }
 
+function canonical(value: unknown): string {
+  return JSON.stringify(value, (_key, entry: unknown) => {
+    if (entry !== null && typeof entry === "object" && !Array.isArray(entry)) {
+      return Object.fromEntries(Object.entries(entry).sort(([a], [b]) => a.localeCompare(b)));
+    }
+    return entry;
+  });
+}
+
 async function start(): Promise<void> {
   const bridge = await connect();
-  const session = await request(bridge, { method: "open", protocol_version: 1 });
-  if (!session.ok) throw new Error("Editor session unavailable");
+  const session = await request(bridge, { method: "open", protocol_version: 1, schema_version: 2 });
+  if (!session.ok || !("document" in session) || session.document.schema_version !== 2) {
+    throw new Error("Editor session unavailable");
+  }
+  const binding = { company_id: session.company_id, session_id: session.session_id, protocol_version: 1 } as const;
+  const belongsHere = (result: EditorResponse) => result.ok
+    && result.company_id === binding.company_id && result.session_id === binding.session_id;
   const editor = new Editor({
     element: editorElement,
-    extensions: [Document, Paragraph, Text],
+    extensions: editorExtensions(session.session_id),
     content: session.document.document,
     enableContentCheck: true,
     injectCSS: false,
     editorProps: { attributes: { "aria-label": "Document text", role: "textbox", "aria-multiline": "true" } },
-    onUpdate() {
-      statusElement.textContent = "Ready to verify";
-    },
   });
+  const canvas = new PageCanvas(editor.view.dom, session.document.page_settings);
+  const report = (message: string) => { statusElement.textContent = message; };
+  let importing = false;
+  const settings = bindControls(editor, canvas, session.document.page_settings, async () => {
+    if (importing) return;
+    importing = true;
+    try {
+      const result = await request(bridge, { ...binding, method: "import_image" });
+      if (!result.ok && result.error === "image_cancelled") return;
+      if (!result.ok && result.error === "invalid_image") {
+        report("Choose a valid PNG or JPEG up to 8 MB and 4096 × 4096 pixels.");
+        return;
+      }
+      if (!belongsHere(result) || !("asset_id" in result)) throw new Error("Image unavailable");
+      editor.chain().focus().insertContent({ type: "image", attrs: { assetId: result.asset_id } }).run();
+    } catch {
+      report("Could not insert the image into this session.");
+    } finally {
+      importing = false;
+    }
+  }, report);
+  const currentDocument = () => {
+    const document = editor.getJSON();
+    editor.schema.nodeFromJSON(document).check();
+    return parseVisualDocument({ schema_version: 2, document, page_settings: settings() });
+  };
   statusElement.textContent = "Editor ready";
   verifyButton.disabled = false;
   verifyButton.addEventListener("click", async () => {
     verifyButton.disabled = true;
     try {
-      const sent = parseDocument({ schema_version: 1, document: editor.getJSON() });
-      const result = await request(bridge, {
-        method: "verify_document", protocol_version: 1,
-        company_id: session.company_id, session_id: session.session_id,
-        document: sent,
-      });
-      if (!result.ok || result.company_id !== session.company_id || result.session_id !== session.session_id
-          || JSON.stringify(result.document) !== JSON.stringify(sent)) {
+      const sent = currentDocument();
+      const result = await request(bridge, { ...binding, method: "verify_document", document: sent });
+      if (!belongsHere(result) || !("document" in result) || canonical(result.document) !== canonical(sent)) {
         throw new Error("Document could not be verified");
       }
-      const current = parseDocument({ schema_version: 1, document: editor.getJSON() });
-      statusElement.textContent = JSON.stringify(current) === JSON.stringify(sent)
+      statusElement.textContent = canonical(currentDocument()) === canonical(sent)
         ? "Document structure verified"
         : "Document changed. Verify again.";
     } catch {

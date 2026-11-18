@@ -9,6 +9,8 @@ from PySide6.QtWebEngineCore import (
     QWebEngineUrlSchemeHandler,
 )
 
+from document_manager.editor.images import ImportedImage
+
 SCHEME = b"document-manager-editor"
 ORIGIN = SCHEME + b"://app/"
 ENTRY_URL = ORIGIN + b"index.html"
@@ -19,6 +21,27 @@ ASSET_TYPES = {
     "qwebchannel.js": b"application/javascript",
 }
 ALLOWED_URLS = {ORIGIN + name.encode("ascii"): name for name in ASSET_TYPES}
+
+
+class EditorImages:
+    def __init__(self):
+        self._images: dict[bytes, bytes] = {}
+        self._size = 0
+
+    def add(self, session_id: str, image: ImportedImage) -> None:
+        url = ORIGIN + f"image/{session_id}/{image.asset_id}.png".encode("ascii")
+        if url not in self._images:
+            if self._size + len(image.content) > 48_000_000:
+                raise OSError("The editor session has reached its image limit.")
+            self._images[url] = image.content
+            self._size += len(image.content)
+
+    def get(self, url: QUrl, method: bytes) -> bytes | None:
+        return self._images.get(bytes(url.toEncoded())) if method == b"GET" else None
+
+    def clear(self) -> None:
+        self._images.clear()
+        self._size = 0
 
 
 def register_editor_scheme() -> None:
@@ -37,8 +60,9 @@ def allowed_asset(url: QUrl, method: bytes) -> str | None:
 
 
 class EditorResources(QWebEngineUrlSchemeHandler):
-    def __init__(self, parent):
+    def __init__(self, images, parent):
         super().__init__(parent)
+        self._images = images
         package = files("document_manager.editor").joinpath("assets")
         self._content = {
             name: package.joinpath(name).read_bytes()
@@ -50,19 +74,26 @@ class EditorResources(QWebEngineUrlSchemeHandler):
         self._content["qwebchannel.js"] = bytes(script.readAll())
 
     def requestStarted(self, job: QWebEngineUrlRequestJob) -> None:
-        asset = allowed_asset(job.requestUrl(), bytes(job.requestMethod()))
-        if asset is None:
+        url, method = job.requestUrl(), bytes(job.requestMethod())
+        asset = allowed_asset(url, method)
+        image = self._images.get(url, method) if asset is None else None
+        if asset is None and image is None:
             job.fail(QWebEngineUrlRequestJob.Error.RequestDenied)
             return
         content = QBuffer(job)
-        content.setData(self._content[asset])
+        content.setData(self._content[asset] if asset is not None else image)
         content.open(QIODevice.OpenModeFlag.ReadOnly)
-        job.reply(ASSET_TYPES[asset], content)
+        job.reply(ASSET_TYPES[asset] if asset is not None else b"image/png", content)
 
 
 class EditorRequestPolicy(QWebEngineUrlRequestInterceptor):
+    def __init__(self, images, parent):
+        super().__init__(parent)
+        self._images = images
+
     def interceptRequest(self, request) -> None:
-        if allowed_asset(request.requestUrl(), bytes(request.requestMethod())) is None:
+        url, method = request.requestUrl(), bytes(request.requestMethod())
+        if allowed_asset(url, method) is None and self._images.get(url, method) is None:
             request.block(True)
 
 

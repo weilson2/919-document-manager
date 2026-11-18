@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
@@ -9,6 +11,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from document_manager.editor.visual_schema import PageSettings
 from document_manager.services.business import BusinessService
 from document_manager.services.settings import CompanyProfile, SettingsService
 from document_manager.ui.company_settings import CompanySettings
@@ -99,7 +102,10 @@ QHeaderView::section { background: #e6edf6; color: #152740; border: 0; padding: 
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, settings: SettingsService, business: BusinessService, company_id: int, profile: CompanyProfile):
+    def __init__(
+        self, settings: SettingsService, business: BusinessService, company_id: int, profile: CompanyProfile,
+        data_dir: Path | None = None,
+    ):
         super().__init__()
         self.settings = settings
         self.company_id = company_id
@@ -119,7 +125,7 @@ class MainWindow(QMainWindow):
         self.navigation.setAccessibleName("Main navigation")
         self.navigation.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.pages = QStackedWidget()
-        self.document_editor = DocumentEditor()
+        self.document_editor = DocumentEditor(data_dir)
         self.dashboard = Dashboard(business, lambda: self.navigation.setCurrentRow(SETTINGS_INDEX), self._quick_create)
         self.company_name = self.dashboard.company_name
         self.company_settings = CompanySettings(settings)
@@ -204,15 +210,16 @@ class MainWindow(QMainWindow):
 
     def _load_company(self, company_id: int, profile: CompanyProfile) -> None:
         self.company_id = company_id
-        self.document_editor.set_company(company_id)
+        self.document_editor.set_company(company_id, PageSettings.model_validate(profile.document_settings.model_dump()))
         self.company_name.setText(profile.name)
         self.company_settings.set_company(company_id, profile, self.default_company_id)
         for page in self.record_pages.values():
             page.set_company(company_id)
         self._refresh_dashboard()
 
-    def _company_saved(self) -> None:
+    def _company_saved(self, profile: CompanyProfile) -> None:
         self.company_name.setText(self.company_settings.name.text())
+        self.document_editor.set_company(self.company_id, PageSettings.model_validate(profile.document_settings.model_dump()))
         self._reload_companies()
         self._refresh_dashboard()
 

@@ -66,7 +66,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Local database ready: {database}")
                 return 0
 
-            window = MainWindow(settings, BusinessService(engine), company_id, profile)
+            window = MainWindow(settings, BusinessService(engine), company_id, profile, data_dir)
             window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
             window.show()
         except Exception:
