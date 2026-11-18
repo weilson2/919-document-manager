@@ -50,7 +50,7 @@ The workspace already contained an independent POS application, its database, an
 
 ## M1 · Dashboard and Business Data
 
-**Status:** Awaiting acceptance.
+**Status:** ACCEPTED on 18 November 2026.
 
 ### Delivered
 
@@ -69,11 +69,11 @@ The workspace already contained an independent POS application, its database, an
 
 ### Verification completed
 
-- All 28 tests passed on Windows 11 x64. Coverage includes the M0 upgrade, SQLite constraints, company isolation, duplicate and invalid inputs, archive recovery, restart persistence, and desktop workflows.
+- All 28 tests passed on Windows 11 x64 for implementation commit `82a814b`. Coverage includes the M0 upgrade, SQLite constraints, company isolation, duplicate and invalid inputs, archive recovery, restart persistence, and desktop workflows.
 - Dependency and lint checks passed. The source distribution and wheel built successfully.
 - The installed 0.2.0 wheel opened a fresh workspace and upgraded a workspace created with the installed M0 wheel. The edited M0 profile survived the upgrade.
-- M1 screens were inspected with Qt's offscreen renderer. Interactive Windows acceptance is pending.
-- Dropdown follow-up verified readable popup text and keyboard selection with a dark system palette. The regression suite now has 29 passing tests.
+- The user confirmed manual Windows 11 acceptance. M1 screens were also inspected with Qt's offscreen renderer.
+- Follow-up commit `b09e145` covers direct startup instructions and dropdown readability. The regression suite passed all 29 tests after that change.
 
 ### Manual acceptance
 
@@ -89,5 +89,5 @@ The workspace already contained an independent POS application, its database, an
 - The Dashboard shows an unavailable state for generated documents. The template editor, document generation, exports, and payroll calculations are later milestones.
 - Recent activity covers business changes in the current company. Local authentication, role controls, encrypted backups, and production packaging are later milestones.
 
-M2 is pending M1 acceptance.
+M2 implementation is pending approval of the technical plan.
 
