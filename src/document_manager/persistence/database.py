@@ -5,6 +5,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import URL, create_engine, event, inspect
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session
 
 
 def create_database_engine(path: Path) -> Engine:
@@ -39,3 +40,11 @@ def upgrade_database(engine: Engine) -> None:
         if tables and "alembic_version" not in tables:
             raise RuntimeError("The workspace contains an unrecognized database.")
         command.upgrade(config, "head")
+
+
+@contextmanager
+def write_session(engine: Engine):
+    with Session(engine) as session, session.begin():
+        # Serialize validation reads with the following mutations.
+        session.connection().exec_driver_sql("BEGIN IMMEDIATE")
+        yield session

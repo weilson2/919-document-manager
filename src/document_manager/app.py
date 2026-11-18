@@ -12,6 +12,7 @@ from document_manager.persistence.database import (
     create_database_engine,
     upgrade_database,
 )
+from document_manager.services.business import BusinessService
 from document_manager.services.settings import SettingsService
 from document_manager.ui.main_window import MainWindow
 
@@ -54,14 +55,15 @@ def main(argv: list[str] | None = None) -> int:
             resources.callback(engine.dispose)
             upgrade_database(engine)
             settings = SettingsService(engine)
-            profile = settings.get_company()
+            company_id = settings.get_default_company_id()
+            profile = settings.get_company(company_id)
             logger.info("Local database ready")
 
             if args.check:
                 print(f"Local database ready: {database}")
                 return 0
 
-            window = MainWindow(settings, profile)
+            window = MainWindow(settings, BusinessService(engine), company_id, profile)
             window.show()
         except Exception:
             logger.exception("Application startup failed")

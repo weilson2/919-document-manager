@@ -12,12 +12,13 @@ from document_manager.persistence.database import (
     upgrade_database,
 )
 from document_manager.persistence.models import AppSetting, Company
+from document_manager.services.errors import DuplicateRecord
 from document_manager.services.settings import CompanyProfile, SettingsService
 
 
 def test_foundation_creates_seeded_database_and_matches_models(database_engine):
     with database_engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0001_foundation"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0002_business_data"
     with migration_config(database_engine) as config:
         command.check(config)
     profile = SettingsService(database_engine).get_company()
@@ -47,8 +48,8 @@ def test_duplicate_registration_rolls_back_profile_update(database_engine):
 
     settings = SettingsService(database_engine)
     original = settings.get_company()
-    with pytest.raises(IntegrityError):
-        settings.save_company(CompanyProfile(name="Unsaved", registration_number="OTHER", address="Muar"))
+    with pytest.raises(DuplicateRecord, match="registration number"):
+        settings.save_company(CompanyProfile(name="Unsaved", registration_number="other", address="Muar"))
     assert settings.get_company() == original
 
 
@@ -82,5 +83,29 @@ def test_existing_unversioned_database_is_left_intact(tmp_path):
         with pytest.raises(RuntimeError, match="unrecognized database"):
             upgrade_database(engine)
         assert inspect(engine).get_table_names() == ["other"]
+    finally:
+        engine.dispose()
+
+
+def test_m0_database_upgrade_preserves_profiles_and_default_selection(tmp_path):
+    engine = create_database_engine(tmp_path / "from-m0.sqlite3")
+    try:
+        with migration_config(engine) as config:
+            command.upgrade(config, "0001_foundation")
+            connection = config.attributes["connection"]
+            connection.execute(text("UPDATE companies SET name = 'Retained M0 name' WHERE id = 1"))
+            connection.execute(text(
+                "INSERT INTO companies (id, name, registration_number, address) VALUES (2, 'Second', 'BRN-2', 'Muar')"
+            ))
+            connection.execute(text("UPDATE settings SET active_company_id = 2"))
+        upgrade_database(engine)
+
+        settings = SettingsService(engine)
+        assert settings.get_company(1).name == "Retained M0 name"
+        assert settings.get_default_company_id() == 2
+        assert settings.get_company().registration_number == "BRN-2"
+        assert settings.get_company().document_settings.page_size == "A4"
+        with engine.connect() as connection:
+            assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
     finally:
         engine.dispose()

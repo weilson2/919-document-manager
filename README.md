@@ -1,6 +1,6 @@
 # 919 Document Manager
 
-Offline-first Windows desktop software for Malaysian SME document administration. M0 provides the desktop navigation, local database, and editable company identity.
+Offline-first Windows desktop software for Malaysian SME document administration. M1 adds company profiles, tenant and employee registers, and template metadata management to the desktop foundation.
 
 ## Run on Windows
 
@@ -29,19 +29,29 @@ By default, the database and rotating log are stored in Qt's per-user applicatio
 .\.venv\Scripts\python.exe -m document_manager --check
 ```
 
-Startup applies the packaged Alembic revisions within a SQLite transaction. The initial migration seeds 919 RESTAURANT and selects it as the active company. Edit its name, registration number, or address in **Company Settings**. Use **Ctrl+1** for the Dashboard and **Ctrl+,** for Company Settings.
+Startup applies the packaged Alembic revisions within a SQLite transaction. A fresh database opens as 919 RESTAURANT. Opening an M0 workspace preserves its company records and default company. Use **Ctrl+1** for the Dashboard and **Ctrl+,** for Company Settings.
 
 On startup failure, the error message identifies the log location when available. An unrecognized, unversioned database is rejected. Use a separate `--data-dir` to diagnose a startup issue while preserving the original workspace.
+
+## Using M1
+
+- **Dashboard** shows non-archived template totals, active tenant and employee counts, recent changes, and shortcuts for creating records. Generated-document totals become available with document generation.
+- **Company Settings** manages identity, contact details, logo, and document defaults for A4 or A5, orientation, and margins. Use **New company** to add a profile, the sidebar to switch companies for this session, and **Make default** to select the company that opens on startup. Logos accept PNG or JPEG files up to 2 MB and 2048 × 2048 pixels. The application stores a normalized PNG in the database.
+- **Tenants** records identification, contact details, stall, rental frequency, MYR rent and deposit, start and end dates, and status. **Employees** records staff and contact details, employment information, basic salary, and optional payroll eligibility attributes. Enter dates as `YYYY-MM-DD` and money with up to two decimal places. Amounts are stored as integer sen and handled as `Decimal` in Python.
+- **Templates** lets you create and assign categories, create and edit template metadata, duplicate it as a draft, and archive it. **Publish metadata** retains an immutable numbered snapshot. Changes to published metadata create a draft while retaining earlier snapshots.
+- **Archive** hides a record from the working list. Open **Archived**, select the record, and use **Restore** to recover it with its previous business status. Identifiers remain reserved while archived. Tenant and employee identification numbers are checked by identification type within the company. Employee numbers, template names, and category names are unique within the company. Company registration numbers are checked across profiles.
+
+Company switching scopes business records and activity within the local workspace. Local sign-in and role-based access are later milestones. M1 captures payroll inputs and template metadata. The editor, rendering, payroll calculations, and backup tooling remain scheduled for later milestones.
 
 ## Project layout
 
 | Location | Responsibility |
 | --- | --- |
 | `src/document_manager/app.py` | Startup, local paths, logging, and application lifetime |
-| `src/document_manager/ui/` | PySide6 shell, navigation, company settings |
-| `src/document_manager/services/` | Application workflows and validated settings |
-| `src/document_manager/persistence/` | SQLAlchemy models, SQLite, and packaged Alembic migrations |
-| `tests/` | Automated database, startup, and desktop tests |
+| `src/document_manager/ui/` | PySide6 shell, dashboard, company and record screens |
+| `src/document_manager/services/` | Input validation, company settings, and transactional business workflows |
+| `src/document_manager/persistence/` | SQLAlchemy models, company-scoped repositories, SQLite, and packaged Alembic migrations |
+| `tests/` | Automated database, migration, service, startup, and desktop tests |
 
 As later milestones land, `src/document_manager/domain/` will hold document, business-data, and payroll rules. `src/document_manager/rendering/` will own document resolution and export adapters. `editor/` will house the TypeScript/Tiptap editor and build its local Qt WebEngine assets. Windows packaging will live in `packaging/`. Business workflows will call the domain and persistence from the service layer. Editor messages will cross a validated Qt WebChannel boundary.
 
@@ -68,4 +78,4 @@ SQLite tests use temporary workspaces. Desktop tests use Qt's offscreen platform
 
 Schema changes require an Alembic revision under `src/document_manager/persistence/migrations/versions`. The `migration_config` context manager supplies Alembic with a connection to an explicitly selected database. Use a disposable development database for revision generation or downgrade checks.
 
-See [PROGRESS.md](PROGRESS.md) for M0 acceptance steps and current limitations.
+See [PROGRESS.md](PROGRESS.md) for the M1 acceptance checklist, architecture risks, and current limitations.

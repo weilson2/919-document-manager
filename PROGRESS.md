@@ -48,3 +48,45 @@ The workspace already contained an independent POS application, its database, an
 - Multiple company records are supported by the schema. Company creation and profile switching are scheduled for M1.
 - Authentication, roles, audit history, encrypted backups, and the Windows installer are later work. The development workspace is for evaluation with sample data.
 
+## M1 · Dashboard and Business Data
+
+**Status:** Awaiting acceptance.
+
+### Delivered
+
+- Dashboard counts, company-specific recent activity, and quick actions for tenants, employees, and templates.
+- Company creation and switching, saved startup default, profile contacts, local logo import and storage, and default page settings.
+- Tenant and employee forms, search and filters, archiving and restoration, and exact MYR storage.
+- Template categories and metadata, duplication and archiving, and immutable published metadata versions. The Document Editor page links to Templates.
+
+### Technical plan and migration risks
+
+- Revision `0002_business_data` adds profile columns and company-scoped tables within the existing startup transaction. It preserves the M0 company rows and saved company selection. A downgrade discards M1 data, so downgrade checks belong on disposable databases.
+- Repositories constrain reads and writes by company ID. Composite foreign keys enforce company membership for template categories and versions. Record changes and activity entries commit in the same transaction.
+- Financial input is checked for range and fractional sen before persistence. SQLite stores the exact integer amount, including zero, and rejects fractional values in money columns.
+- Archived records retain their identifiers and business status. Duplicate checks include archived rows so a restored record keeps its original identity.
+- Published versions carry template metadata and a slot for the future structured document. SQLite rejects updates, deletes, and replacements of published version rows. Editing current metadata changes its status to Draft and keeps the published history.
+
+### Verification completed
+
+- All 28 tests passed on Windows 11 x64. Coverage includes the M0 upgrade, SQLite constraints, company isolation, duplicate and invalid inputs, archive recovery, restart persistence, and desktop workflows.
+- Dependency and lint checks passed. The source distribution and wheel built successfully.
+- The installed 0.2.0 wheel opened a fresh workspace and upgraded a workspace created with the installed M0 wheel. The edited M0 profile survived the upgrade.
+- M1 screens were inspected with Qt's offscreen renderer. Interactive Windows acceptance is pending.
+
+### Manual acceptance
+
+1. Launch M1 against a copy of an accepted M0 workspace or use a fresh folder with `.\Start-DocumentManager.ps1 -DataDir "$env:TEMP\919-document-manager-m1"`. Verify that the existing or seeded company opens and that the ten sidebar destinations open.
+2. Edit contact information, choose a PNG or JPEG logo, and change the company page size or margins. Save. Add a second company and use **Make default** there. Switch through the sidebar and verify the settings differ between companies.
+3. Create a tenant using Dashboard **New tenant**. Test search, rental-type and status filters, and edit the deposit. Create an employee including optional payroll attributes. Try a duplicate employee number and a MYR value of `12.345`; both should be rejected.
+4. Archive a tenant and an employee. Verify their dashboard counts decrease, then open their **Archived** filters and restore them. Switch companies and verify that the original records, counts, and activity only appear in the original company.
+5. In **Templates**, create a category and template, assign the category, publish the metadata, rename the template, then publish again. Duplicate the template and verify that the copy is a draft. Archive and restore it. Open **Document Editor** to verify the placeholder.
+6. Close and reopen the same workspace. Verify the default company opens and saved details, records, and template states persist.
+
+### Current limitations
+
+- The Dashboard shows an unavailable state for generated documents. The template editor, document generation, exports, and payroll calculations are later milestones.
+- Recent activity covers business changes in the current company. Local authentication, role controls, encrypted backups, and production packaging are later milestones.
+
+M2 is pending M1 acceptance.
+
