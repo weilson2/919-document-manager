@@ -237,3 +237,11 @@ The artifacts are `dist/919DocumentManager-0.4.0rc1-x64.msi` and `dist/python-0.
 
 Manual Windows 11 release acceptance is pending. Automated verification uses a separate fictional workspace.
 
+## 0.4.1 RC1 offer letter form
+
+Fill Mode uses a light form surface, larger labels, and readable validation text under the Windows dark palette. The Employee Offer Letter explains the probation period and gives examples for working hours and notice period. Published starter versions display the same guidance at runtime. Entries and published version data are preserved.
+
+The native Windows rendering was checked with the dark palette. All 103 Python tests passed, including contrast and guidance checks for current and older starter versions.
+
+The x64 MSI built and extracted into a fresh test folder. The extracted app included the updated help text and started offline in a fictional workspace. The installer is available at `dist/919DocumentManager-0.4.1rc1-x64.msi`.
+

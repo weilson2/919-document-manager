@@ -7,12 +7,14 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QWidget,
 )
 
 from document_manager.services.business import BusinessService
 from document_manager.services.settings import SettingsService
 from document_manager.ui.company_logo import read_logo
 from document_manager.ui.editor_page import DocumentEditor
+from document_manager.ui.fill_document import DateInput, FillDialog
 from document_manager.ui.main_window import MainWindow
 from document_manager.ui.record_forms import record_dialog
 
@@ -205,6 +207,44 @@ def test_dropdowns_use_readable_popup_colors_with_dark_system_palette(qtbot, she
             finally:
                 combo.hidePopup()
         assert rental_types.currentData() == "daily"
+        dialog.close()
+    finally:
+        QApplication.setPalette(original)
+
+
+@pytest.mark.parametrize("legacy_starter", [True, False])
+def test_offer_form_is_readable_and_explains_probation_in_dark_mode(qtbot, shell, tmp_path, legacy_starter):
+    window, _settings, business = shell
+    business.install_starters(1)
+    template_id = business.designs.starter_template(1, "Employee Offer Letter")
+    version = business.designs.published(1, template_id)
+    probation = next(field for field in version.document_json["fields"] if field["key"] == "probation")
+    if legacy_starter:
+        probation.pop("description")
+    original = QApplication.palette()
+    dark = QPalette(original)
+    for role in (QPalette.ColorRole.Window, QPalette.ColorRole.Base):
+        dark.setColor(role, QColor("#202124"))
+    for role in (QPalette.ColorRole.WindowText, QPalette.ColorRole.Text):
+        dark.setColor(role, QColor("#ffffff"))
+    QApplication.setPalette(dark)
+    try:
+        dialog = FillDialog(business, tmp_path, 1, version, window)
+        qtbot.addWidget(dialog)
+        dialog.show()
+        labels = dialog.findChildren(QLabel)
+        caption = next(label for label in labels if label.text() == "Probation period *")
+        help_text = next(label for label in labels if "3 months or 12 weeks" in label.text())
+        assert caption.palette().windowText().color().name() == "#152740"
+        assert caption.font().pixelSize() == 14
+        assert caption.buddy().accessibleDescription() == help_text.text()
+        assert caption.buddy().text() == ""
+        assert help_text.palette().windowText().color().name() == "#40566e"
+        assert dialog._status.palette().windowText().color().name() == "#152740"
+        assert dialog.findChild(DateInput).palette().text().color().name() == "#152740"
+        fields = dialog.findChild(QWidget, "fillFields")
+        assert fields.grab().toImage().pixelColor(1, 1).name() == "#f1f5f9"
+        assert business.designs.published(1, template_id).version_number == 1
         dialog.close()
     finally:
         QApplication.setPalette(original)

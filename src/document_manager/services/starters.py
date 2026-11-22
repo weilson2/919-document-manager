@@ -22,6 +22,23 @@ from document_manager.services.designs import DesignService, checked_document
 INSTALL_ACTION = "installed starter designs"
 
 
+def _starter_presets() -> list[dict]:
+    resource = files("document_manager").joinpath("presets", "starter_designs.json")
+    return json.loads(resource.read_text(encoding="utf-8"))
+
+
+def starter_field_help(name: str | None) -> dict[tuple[str, str, str], str]:
+    if not name:
+        return {}
+    for preset in _starter_presets():
+        if preset["name"] == name:
+            return {
+                (field["id"], field["key"], field["type"]): field["description"]
+                for field in preset["fields"] if field.get("description")
+            }
+    return {}
+
+
 def install_starters(engine, company_id: int) -> None:
     with write_session(engine) as session:
         if session.scalar(select(BusinessActivity.id).where(
@@ -30,12 +47,10 @@ def install_starters(engine, company_id: int) -> None:
             return
         company = session.get_one(Company, company_id)
         page_settings = PageSettings.model_validate(company.document_settings).model_dump()
-        starter_file = files("document_manager").joinpath("presets", "starter_designs.json")
-        presets = json.loads(starter_file.read_text(encoding="utf-8"))
         records = RecordRepository(session, company_id, Template)
         templates = TemplateRepository(session, company_id)
         categories = {category.name.casefold(): category for category in templates.categories()}
-        for preset in presets:
+        for preset in _starter_presets():
             name = preset["name"]
             if templates.name_used(name):
                 copy = 1

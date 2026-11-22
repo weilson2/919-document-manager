@@ -22,6 +22,7 @@ from document_manager.editor.print_layout import print_html
 from document_manager.services.designs import checked_document
 from document_manager.services.documents import DocumentSource
 from document_manager.services.errors import BusinessError
+from document_manager.services.starters import starter_field_help
 from document_manager.ui.pdf_view import PdfJob, PdfPreview, export_pdf
 from document_manager.ui.record_forms import record_dialog
 from document_manager.ui.widgets import (
@@ -32,6 +33,24 @@ from document_manager.ui.widgets import (
 )
 
 NO_DATE = QDate(1, 1, 1)
+
+FILL_FORM_STYLE = """
+QDialog#fillDocument, QScrollArea#fillScroll, QWidget#fillFields {
+    background-color: #f1f5f9;
+}
+QWidget#fillFields QLabel, QLabel#fillStatus, QLabel#fillTitle { color: #152740; font-size: 14px; }
+QLabel#fillTitle { font-size: 17px; font-weight: 700; }
+QWidget#fillFields QLabel#fillFieldHelp { color: #40566e; font-size: 13px; }
+QLabel#fillStatus { font-weight: 600; }
+QWidget#fillFields QLineEdit, QWidget#fillFields QPlainTextEdit, QWidget#fillFields QComboBox {
+    font-size: 14px;
+}
+QWidget#fillFields QDateEdit {
+    background: white; color: #152740; font-size: 14px;
+    border: 1px solid #9aacc1; border-radius: 5px; padding: 6px;
+}
+QWidget#fillFields QDateEdit:focus { border-color: #245da0; }
+"""
 
 
 class DateInput(QDateEdit):
@@ -117,8 +136,10 @@ class FillDialog(QDialog):
         source=None, payroll_run=None, allow_edit_design=False, inherited_changes=False,
     ):
         super().__init__(parent)
+        self.setObjectName("fillDocument")
+        self.setStyleSheet(FILL_FORM_STYLE)
         self.setWindowTitle(f"Fill document · {version.metadata_snapshot['name']}")
-        self.resize(730, 680)
+        self.resize(760, 680)
         self._business = business
         self._company_id = company_id
         self._data_dir = data_dir
@@ -127,16 +148,19 @@ class FillDialog(QDialog):
         self._design = checked_document(version.document_json)
         self._fields = {}
         self._subjects = {}
-        self._status = plain_label()
+        self._status = plain_label(object_name="fillStatus")
         self._printing = False
         self._source_subjects = source.subjects if source else {}
         self._allow_edit_design = payroll_run is None and (source is None or allow_edit_design)
 
         layout = QVBoxLayout(self)
         layout.addWidget(plain_label(f"{version.metadata_snapshot['name']} · Published version {version.version_number}",
-                                     object_name="sectionTitle"))
+                                     object_name="fillTitle"))
         form_contents = QWidget()
+        form_contents.setObjectName("fillFields")
+        form_contents.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
         form = QFormLayout(form_contents)
+        form.setVerticalSpacing(9)
         form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         for kind in ("tenant", "employee"):
@@ -164,16 +188,28 @@ class FillDialog(QDialog):
         choices = lambda kind: business.fill.choices(company_id, kind)
         defaults = dict(source.values) if source else business.fill.suggested(company_id, self._design, {})
         payroll_values = business.payroll.payslip_values(payroll_run) if payroll_run is not None else {}
+        starter_help = starter_field_help(version.metadata_snapshot.get("starter_name"))
         for field in self._design.fields:
             control, read, write = field_widget(field, choices)
             self._fields[field.id] = (control, read, write)
             caption = field.label + (" *" if field.required else "")
             control.setAccessibleName(caption)
-            if field.description:
-                control.setToolTip(field.description)
-            form.addRow(plain_label(caption), control)
-            if field.description:
-                form.addRow("", plain_label(field.description))
+            label = plain_label(caption)
+            label.setBuddy(control)
+            guidance = field.description
+            if guidance is None:
+                guidance = starter_help.get((field.id, field.key, field.type))
+            if guidance:
+                control.setAccessibleDescription(guidance)
+                entry = QWidget()
+                entry_layout = QVBoxLayout(entry)
+                entry_layout.setContentsMargins(0, 0, 0, 0)
+                entry_layout.setSpacing(4)
+                entry_layout.addWidget(control)
+                entry_layout.addWidget(plain_label(guidance, object_name="fillFieldHelp"))
+                form.addRow(label, entry)
+            else:
+                form.addRow(label, control)
             if isinstance(control, ComboBox) and field.type in REFERENCE_TYPES:
                 self._ensure_reference(control, defaults.get(field.id))
             write(defaults.get(field.id))
@@ -183,6 +219,7 @@ class FillDialog(QDialog):
             form.addRow(plain_label("This design has no fillable fields. Preview the published content to continue."))
 
         scroll = QScrollArea()
+        scroll.setObjectName("fillScroll")
         scroll.setWidgetResizable(True)
         scroll.setWidget(form_contents)
         layout.addWidget(scroll, 1)

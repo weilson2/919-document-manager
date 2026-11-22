@@ -64,9 +64,9 @@
       {"id":"00000000000000000000000000000006","key":"position","label":"Position","type":"text","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.position"},
       {"id":"00000000000000000000000000000007","key":"salary","label":"Basic salary","type":"currency","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.basic_salary"},
       {"id":"00000000000000000000000000000008","key":"commencement","label":"Commencement date","type":"date","required":true,"default":null,"validation":{},"formatting":{},"binding":"employee.start_date"},
-      {"id":"00000000000000000000000000000009","key":"probation","label":"Probation period","type":"text","required":true,"default":null,"validation":{},"formatting":{}},
-      {"id":"0000000000000000000000000000000a","key":"hours","label":"Working hours","type":"text","required":true,"default":null,"validation":{},"formatting":{}},
-      {"id":"0000000000000000000000000000000b","key":"notice","label":"Notice period","type":"text","required":true,"default":null,"validation":{},"formatting":{}},
+      {"id":"00000000000000000000000000000009","key":"probation","label":"Probation period","type":"text","required":true,"default":null,"validation":{},"formatting":{},"description":"Initial period for reviewing the new employee’s performance before deciding on confirmation. Include the unit, e.g. 3 months or 12 weeks."},
+      {"id":"0000000000000000000000000000000a","key":"hours","label":"Working hours","type":"text","required":true,"default":null,"validation":{},"formatting":{},"description":"Enter the agreed schedule, e.g. Monday to Friday, 9 am to 6 pm, or As stated in the shift roster."},
+      {"id":"0000000000000000000000000000000b","key":"notice","label":"Notice period","type":"text","required":true,"default":null,"validation":{},"formatting":{},"description":"Enter how much advance notice must be given when ending employment, e.g. 1 month."},
       {"id":"0000000000000000000000000000000c","key":"terms","label":"Additional terms","type":"multiline","required":false,"default":null,"validation":{},"formatting":{}}
     ],
     "document": {"type": "doc", "content": [

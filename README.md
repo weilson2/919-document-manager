@@ -26,6 +26,8 @@ To initialize or check an isolated workspace, use `.\Start-DocumentManager.cmd -
 4. Choose **Preview PDF**, inspect the actual PDF, and select **Save to history**. **Export PDF** writes the saved bytes to the selected location. **Back to form** retains your entries. **Edit design** pauses the form and **Return to filled values** resumes it. If a newer design exists, you can keep the current version or carry matching fields forward.
 5. Open **History** to find a document by number, title, or subject. View and export the original PDF, or use **Reuse values** to start a new document from the original version and inputs. Changing the company, tenant, employee, or template leaves the original PDF and captured data intact. Use the **Archived** filter to restore archived records.
 
+In an offer letter, **Probation period** is the initial time for reviewing a new employee’s performance before deciding on confirmation. Enter the agreed duration with its unit, such as **3 months** or **12 weeks**.
+
 ### Editing and field design
 
 The editor supports flowing text, headings, lists, formatting, tables, images, and explicit page breaks. For a table merge, select multiple cells, then use **Merge cells**. Select an image and drag its corner, or set its percentage width in **Image**. PNG and JPEG imports accept up to 8 MB and 4096 × 4096 pixels. Page setup includes A4 or A5, portrait or landscape, margins, repeated plain-text headers and footers, page numbers, and the company logo. Use at least 8 mm of top or bottom margin for the corresponding running text or numbers.
