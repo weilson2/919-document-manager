@@ -10,3 +10,8 @@ __pycache__/
 *.sqlite3-*
 *.log
 *.log.[0-9]*
+
+# Local test scripts: keep on this PC, exclude from commits.
+/tests/
+/editor/test/
+/919 Document Manager Test Checklist.docx
